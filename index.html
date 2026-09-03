@@ -672,11 +672,11 @@ table th{position:sticky;top:0;z-index:1}
 }
 .notif-badge.show{display:inline-flex}
 .notif-dropdown{
-  display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-width:min(340px,calc(100vw - 24px));
+  display:none!important;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-width:min(340px,calc(100vw - 24px));
   background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);
   z-index:1500;overflow:hidden;
 }
-.notif-dropdown.open{display:block}
+.notif-dropdown.open{display:block!important}
 .notif-dropdown-head{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:10px 12px;border-bottom:1px solid var(--border-l);font-size:12px;font-weight:700;
@@ -756,7 +756,7 @@ table th{position:sticky;top:0;z-index:1}
 <button type="button" class="notif-btn" id="notifBtn" title="Уведомления о бронях" onclick="toggleNotifDropdown(event)">
   🔔<span class="notif-badge" id="notifBadge">0</span>
 </button>
-<div class="notif-dropdown" id="notifDropdown">
+<div class="notif-dropdown" id="notifDropdown" style="display:none" hidden>
   <div class="notif-dropdown-head">
     <span>🔔 Уведомления</span>
     <button type="button" onclick="enableBrowserNotifications();event.stopPropagation()">Разрешить пуш</button>
@@ -2045,6 +2045,7 @@ async function initApp(){
         if(cd)cd.textContent=new Date().toLocaleDateString('ru-RU',{weekday:'short',year:'numeric',month:'long',day:'numeric'});
         if(typeof populateRoleSelects==='function')populateRoleSelects();
         showPage('dashboard');
+        closeNotifDropdown();
     }catch(err){
         console.error('initApp',err);
         showToast('Ошибка запуска: '+(err.message||err)+' — пробуем локально','warning');
@@ -2520,22 +2521,36 @@ function renderNotifBell(){
 }
 
 function openNotifItem(id){
-  document.getElementById('notifDropdown')?.classList.remove('open');
+  closeNotifDropdown();
   if(typeof viewBookingDetail==='function') viewBookingDetail(id);
   else {showPage('bookings');}
 }
 
 function toggleNotifDropdown(e){
-  if(e)e.stopPropagation();
+  if(e){e.preventDefault();e.stopPropagation();}
   const dd=document.getElementById('notifDropdown');
   if(!dd)return;
-  dd.classList.toggle('open');
-  if(dd.classList.contains('open')) renderNotifBell();
+  const willOpen=!dd.classList.contains('open');
+  if(willOpen){
+    renderNotifBell();
+    dd.classList.add('open');
+    dd.hidden=false;
+    dd.style.display='block';
+  }else{
+    dd.classList.remove('open');
+    dd.hidden=true;
+    dd.style.display='none';
+  }
 }
+function closeNotifDropdown(){
+  const dd=document.getElementById('notifDropdown');
+  if(!dd)return;
+  dd.classList.remove('open');
+  dd.hidden=true;
+  dd.style.display='none';
+}
+document.addEventListener('click',()=>closeNotifDropdown());
 
-document.addEventListener('click',()=>{
-  document.getElementById('notifDropdown')?.classList.remove('open');
-});
 
 function buildBookingReminderBanners(){
   const items=getUpcomingBookingNotifs().filter(i=>i.type==='booking'&&i.diffDays<=3);
