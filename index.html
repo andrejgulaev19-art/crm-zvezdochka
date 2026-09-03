@@ -658,41 +658,7 @@ table th{position:sticky;top:0;z-index:1}
   .stats-row{grid-template-columns:1fr 1fr}
   .quick-actions{grid-template-columns:repeat(2,1fr)}
   
-/* Уведомления — только по клику на 🔔 */
-.notif-btn{
-  position:relative;border:none;background:var(--border-l);width:36px;height:36px;border-radius:10px;
-  cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center;
-  transition:background .15s;
-}
-.notif-btn:hover{background:var(--primary-light)}
-.notif-badge{
-  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;
-  background:var(--danger);color:#fff;font-size:9px;font-weight:700;border-radius:8px;
-  display:none;align-items:center;justify-content:center;line-height:1;
-}
-.notif-badge.show{display:inline-flex}
-.notif-dropdown{
-  display:none!important;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-width:min(340px,calc(100vw - 24px));
-  background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);
-  z-index:1500;overflow:hidden;
-}
-.notif-dropdown.open{display:block!important}
-.notif-dropdown-head{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:10px 12px;border-bottom:1px solid var(--border-l);font-size:12px;font-weight:700;
-  background:var(--border-l);
-}
-.notif-dropdown-head button{
-  border:1px solid var(--border);background:#fff;border-radius:8px;padding:4px 8px;
-  font-size:10px;cursor:pointer;font-family:var(--font);color:var(--text-s);
-}
-.notif-list{max-height:360px;overflow-y:auto}
-.notif-item{padding:10px 12px;border-bottom:1px solid var(--border-l);cursor:pointer;transition:background .12s}
-.notif-item:hover{background:var(--primary-light)}
-.notif-item.urgent{background:#fff1f2}
-.notif-item .n-title{font-size:12px;font-weight:700;margin-bottom:2px}
-.notif-item .n-meta{font-size:11px;color:var(--text-s);line-height:1.35}
-.notif-empty{padding:20px;text-align:center;color:var(--text-s);font-size:12px}
+
 
 }
 
@@ -753,16 +719,7 @@ table th{position:sticky;top:0;z-index:1}
 <div class="topbar-right" style="position:relative">
 <span class="auth-user-info" id="topbarUserInfo" style="display:none">👑 Админ</span>
 <span class="topbar-date" id="currentDate"></span>
-<button type="button" class="notif-btn" id="notifBtn" title="Уведомления о бронях" onclick="toggleNotifDropdown(event)">
-  🔔<span class="notif-badge" id="notifBadge">0</span>
-</button>
-<div class="notif-dropdown" id="notifDropdown" style="display:none" hidden>
-  <div class="notif-dropdown-head">
-    <span>🔔 Уведомления</span>
-    <button type="button" onclick="enableBrowserNotifications();event.stopPropagation()">Разрешить пуш</button>
-  </div>
-  <div class="notif-list" id="notifList"><div class="notif-empty">Нет уведомлений</div></div>
-</div>
+
 </div>
 </header>
 
@@ -2045,8 +2002,7 @@ async function initApp(){
         if(cd)cd.textContent=new Date().toLocaleDateString('ru-RU',{weekday:'short',year:'numeric',month:'long',day:'numeric'});
         if(typeof populateRoleSelects==='function')populateRoleSelects();
         showPage('dashboard');
-        closeNotifDropdown();
-    }catch(err){
+            }catch(err){
         console.error('initApp',err);
         showToast('Ошибка запуска: '+(err.message||err)+' — пробуем локально','warning');
         try{
@@ -2465,164 +2421,37 @@ function showArchiveTab(tab,el){document.querySelectorAll('#page-archive .tab').
 // DASHBOARD
 
 // ===================== УВЕДОМЛЕНИЯ О БРОНЯХ =====================
-function getUpcomingBookingNotifs(){
-  const now=new Date();
-  const day0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const items=[];
-  const bks=(gd('bookings')||[]).filter(b=>b.status==='active'||b.status==='pending');
-  bks.forEach(b=>{
-    const d=new Date(b.checkInDate+'T'+(b.checkInTime||'12:00'));
-    if(isNaN(d))return;
-    const day=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-    const diffDays=Math.round((day-day0)/86400000);
-    if(diffDays<0||diffDays>7)return;
-    let label,urgent=false;
-    if(diffDays===0){label='Сегодня';urgent=true}
-    else if(diffDays===1){label='Завтра';urgent=true}
-    else label='Через '+diffDays+' дн.';
-    const meal=typeof mealSummary==='function'?mealSummary(b):'';
-    items.push({
-      id:b.id,type:'booking',urgent,diffDays,date:d,
-      title:`🏠 ${label}: ${typeof getBookingObjectName==='function'?getBookingObjectName(b):'Бронь'}`,
-      meta:`${b.clientName||'—'} · ${b.clientPhone||''} · ${formatDate(b.checkInDate)} ${b.checkInTime||''}${meal?' · 🍽️':''}${b.status==='pending'?' · ⏳ заявка':''}`,
-      booking:b
-    });
-  });
-  const pending=(gd('bookings')||[]).filter(b=>b.status==='pending');
-  pending.forEach(b=>{
-    if(items.some(i=>i.id===b.id))return;
-    items.push({
-      id:'pend_'+b.id,type:'pending',urgent:true,diffDays:0,date:new Date(b.createdAt||Date.now()),
-      title:'⏳ Новая заявка на бронь',
-      meta:`${typeof getBookingObjectName==='function'?getBookingObjectName(b):''} — ${b.clientName||''}`,
-      booking:b
-    });
-  });
-  items.sort((a,b)=>(a.diffDays-b.diffDays)||(a.date-b.date));
-  return items;
-}
+function getUpcomingBookingNotifs(){}
 
-function renderNotifBell(){
-  const items=getUpcomingBookingNotifs();
-  const badge=document.getElementById('notifBadge');
-  const list=document.getElementById('notifList');
-  if(!badge||!list)return;
-  const count=items.filter(i=>i.urgent||i.diffDays<=3).length;
-  badge.textContent=String(count);
-  badge.classList.toggle('show', count>0);
-  if(!items.length){
-    list.innerHTML='<div class="notif-empty">Нет ближайших броней</div>';
-    return;
-  }
-  list.innerHTML=items.map(i=>`<div class="notif-item ${i.urgent?'urgent':''}" onclick="openNotifItem('${i.booking.id}')">
-    <div class="n-title">${i.title}</div>
-    <div class="n-meta">${i.meta}</div>
-  </div>`).join('');
-}
 
-function openNotifItem(id){
-  closeNotifDropdown();
-  if(typeof viewBookingDetail==='function') viewBookingDetail(id);
-  else {showPage('bookings');}
-}
+function renderNotifBell(){}
 
-function toggleNotifDropdown(e){
-  if(e){e.preventDefault();e.stopPropagation();}
-  const dd=document.getElementById('notifDropdown');
-  if(!dd)return;
-  const willOpen=!dd.classList.contains('open');
-  if(willOpen){
-    renderNotifBell();
-    dd.classList.add('open');
-    dd.hidden=false;
-    dd.style.display='block';
-  }else{
-    dd.classList.remove('open');
-    dd.hidden=true;
-    dd.style.display='none';
-  }
-}
-function closeNotifDropdown(){
-  const dd=document.getElementById('notifDropdown');
-  if(!dd)return;
-  dd.classList.remove('open');
-  dd.hidden=true;
-  dd.style.display='none';
-}
+
+function openNotifItem(){}
+
+
+function toggleNotifDropdown(){}
+
+function closeNotifDropdown(){}
+
 document.addEventListener('click',()=>closeNotifDropdown());
 
 
-function buildBookingReminderBanners(){
-  const items=getUpcomingBookingNotifs().filter(i=>i.type==='booking'&&i.diffDays<=3);
-  if(!items.length)return '';
-  const today=items.filter(i=>i.diffDays===0);
-  const soon=items.filter(i=>i.diffDays>0);
-  let html='';
-  if(today.length){
-    html+=`<div class="booking-reminder-banner today"><h4>🏠 Брони на сегодня (${today.length})</h4>`;
-    html+=today.map(i=>`<div class="reminder-item"><span>${i.title.replace(/^🏠[^:]+:\s*/,'')} — ${i.booking.clientName||''}</span>
-      <a onclick="viewBookingDetail('${i.booking.id}')" style="cursor:pointer;color:#e11d48;font-weight:700">Открыть →</a></div>`).join('');
-    html+='</div>';
-  }
-  if(soon.length){
-    html+=`<div class="booking-reminder-banner"><h4>📅 Брони в ближайшие 3 дня (${soon.length})</h4>`;
-    html+=soon.slice(0,8).map(i=>`<div class="reminder-item"><span>${i.title} — ${i.booking.clientName||''}</span>
-      <a onclick="viewBookingDetail('${i.booking.id}')" style="cursor:pointer;color:#4338ca;font-weight:700">Открыть →</a></div>`).join('');
-    html+='</div>';
-  }
-  return html;
-}
+function buildBookingReminderBanners(){}
 
-function enableBrowserNotifications(){
-  if(!('Notification' in window)){showToast('Браузер не поддерживает уведомления','warning');return}
-  Notification.requestPermission().then(p=>{
-    if(p==='granted'){showToast('Пуш-уведомления включены','success');scheduleBookingBrowserNotifs(true)}
-    else showToast('Разрешение не получено','warning');
-  });
-}
 
-function scheduleBookingBrowserNotifs(force){
-  if(!('Notification' in window)||Notification.permission!=='granted')return;
-  const key='zvezda_notif_sent';
-  let sent={};
-  try{sent=JSON.parse(localStorage.getItem(key)||'{}')}catch(e){}
-  const today=new Date().toISOString().slice(0,10);
-  const items=getUpcomingBookingNotifs().filter(i=>i.type==='booking'&&(i.diffDays===0||i.diffDays===1));
-  items.forEach(i=>{
-    const sid=i.booking.id+'_'+i.diffDays+'_'+today;
-    if(sent[sid]&&!force)return;
-    try{
-      const n=new Notification(i.title,{
-        body:i.meta,
-        tag:sid,
-        icon:undefined
-      });
-      n.onclick=()=>{window.focus();openNotifItem(i.booking.id);n.close()};
-      sent[sid]=Date.now();
-    }catch(e){console.warn(e)}
-  });
-  // cleanup old
-  const week=Date.now()-7*86400000;
-  Object.keys(sent).forEach(k=>{if(sent[k]<week)delete sent[k]});
-  try{localStorage.setItem(key,JSON.stringify(sent))}catch(e){}
-}
+function enableBrowserNotifications(){}
 
-function notifyNewBooking(bk){
-  showToast('Бронь: '+(typeof getBookingObjectName==='function'?getBookingObjectName(bk):'')+' — '+(bk.clientName||''),'success');
-  renderNotifBell();
-  if('Notification' in window&&Notification.permission==='granted'){
-    try{
-      new Notification('Новая бронь',{
-        body:(typeof getBookingObjectName==='function'?getBookingObjectName(bk):'Объект')+' · '+(bk.clientName||'')+' · '+formatDate(bk.checkInDate),
-        tag:'new_'+bk.id
-      });
-    }catch(e){}
-  }
-}
+
+function scheduleBookingBrowserNotifs(){}
+
+
+function notifyNewBooking(){}
+
 
 
 function renderDashboard(){const vs=gd('vouchers').filter(v=>v.status==='active');const bks=gd('bookings').filter(b=>b.status==='active');const ss=gd('sessions');const es=gd('employees').filter(e=>e.status==='active');const dets=gd('detachments');const now=new Date();const aV=vs.filter(v=>new Date(v.sessionEnd)>=now);const rev=vs.reduce((s,v)=>s+(v.totalAmount||0),0);const unpaid=vs.filter(v=>!getPaymentStatus(v).full);document.getElementById('statVouchers').textContent=aV.length;document.getElementById('statRevenue').textContent=rev.toLocaleString()+'₽';document.getElementById('statBookings').textContent=bks.length;document.getElementById('statSessions').textContent=ss.length;document.getElementById('statEmployees').textContent=es.length;document.getElementById('statDetachments').textContent=dets.length;document.getElementById('statUnpaid').textContent=unpaid.length;const remDiv=document.getElementById('paymentReminders');// Заявки от родителей
-const pendingV=gd('vouchers').filter(v=>v.status==='pending');const pendingB=gd('bookings').filter(b=>b.status==='pending');const pendingP=gd('progBookings').filter(b=>b.status==='pending');const totalPending=pendingV.length+pendingB.length+pendingP.length;let remHtml='';if(totalPending>0){remHtml+=`<div class="reminder-banner" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:var(--primary)"><h4 style="color:var(--primary-dark)">📬 Новые заявки от родителей (${totalPending})</h4>${pendingV.length?`<div class="reminder-item"><span>🎫 Путёвок: ${pendingV.length}</span><a onclick="showPage('vouchers')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}${pendingB.length?`<div class="reminder-item"><span>🏠 Броней: ${pendingB.length}</span><a onclick="showPage('bookings')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}${pendingP.length?`<div class="reminder-item"><span>🎮 Программ: ${pendingP.length}</span><a onclick="showPage('programBookings')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}</div>`}if(unpaid.length>0){const items=unpaid.slice(0,5).map(v=>{const ps=getPaymentStatus(v);const ov=!!ps.overdueDate;return `<div class="reminder-item ${ov?'overdue':''}"><span>🎫 ${v.childName} — ${ps.remain.toLocaleString()}₽</span><span>${ov?'⚠️ '+formatDate(ps.overdueDate):(ps.nextPayDate?'📅 '+formatDate(ps.nextPayDate):'—')}</span></div>`}).join('');remHtml+=`<div class="reminder-banner"><h4>⚠️ Неоплачено (${unpaid.length})</h4>${items}</div>`}remDiv.innerHTML=remHtml;renderNotifBell();scheduleBookingBrowserNotifs(false);const act=document.getElementById('recentActivity');const up=[];
+const pendingV=gd('vouchers').filter(v=>v.status==='pending');const pendingB=gd('bookings').filter(b=>b.status==='pending');const pendingP=gd('progBookings').filter(b=>b.status==='pending');const totalPending=pendingV.length+pendingB.length+pendingP.length;let remHtml='';if(totalPending>0){remHtml+=`<div class="reminder-banner" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:var(--primary)"><h4 style="color:var(--primary-dark)">📬 Новые заявки от родителей (${totalPending})</h4>${pendingV.length?`<div class="reminder-item"><span>🎫 Путёвок: ${pendingV.length}</span><a onclick="showPage('vouchers')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}${pendingB.length?`<div class="reminder-item"><span>🏠 Броней: ${pendingB.length}</span><a onclick="showPage('bookings')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}${pendingP.length?`<div class="reminder-item"><span>🎮 Программ: ${pendingP.length}</span><a onclick="showPage('programBookings')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}</div>`}if(unpaid.length>0){const items=unpaid.slice(0,5).map(v=>{const ps=getPaymentStatus(v);const ov=!!ps.overdueDate;return `<div class="reminder-item ${ov?'overdue':''}"><span>🎫 ${v.childName} — ${ps.remain.toLocaleString()}₽</span><span>${ov?'⚠️ '+formatDate(ps.overdueDate):(ps.nextPayDate?'📅 '+formatDate(ps.nextPayDate):'—')}</span></div>`}).join('');remHtml+=`<div class="reminder-banner"><h4>⚠️ Неоплачено (${unpaid.length})</h4>${items}</div>`}remDiv.innerHTML=remHtml;const act=document.getElementById('recentActivity');const up=[];
 ss.forEach(s=>{const st=getSessionStatus(s);if(st.code==='upcoming'||st.code==='active'){const kids=gd('vouchers').filter(v=>(v.status==='active'||v.status==='pending')&&v.sessionStart&&new Date(v.sessionStart)<=new Date(s.endDate)&&new Date(v.sessionEnd)>=new Date(s.startDate)).length;up.push({type:'session',id:s.id,date:new Date(s.startDate),badge:st.code==='active'?'🟢 Идёт':'📅 Скоро',title:`🌞 Смена «${s.sessionName}»`,rows:[[`📅 ${formatDate(s.startDate)} — ${formatDate(s.endDate)}`,kids?`👥 ~${kids} детей по путёвкам`:'—'],[s.description||'','']]})}});
 bks.filter(b=>b.status==='active'||b.status==='pending').forEach(b=>{const prog=b.bookingProgramId?gd('programs').find(p=>p.id===b.bookingProgramId):null;const ms=mealSummary(b);up.push({type:'booking',id:b.id,date:new Date(b.checkInDate+'T'+(b.checkInTime||'00:00')),badge:b.status==='pending'?'⏳ Заявка':'✅ Бронь',title:`🏠 ${getBookingObjectName(b)}`,rows:[[`👤 ${b.clientName||'—'}`,`📞 ${b.clientPhone||'—'}`],[b.organization?`🏢 ${b.organization}`:'',`👶 ${b.childrenCount||0} / 👤 ${b.adultsCount||0}`],[`📅 ${formatDate(b.checkInDate)} ${b.checkInTime||''} → ${formatDate(b.checkOutDate)} ${b.checkOutTime||''}`,''],[ms?`🍽️ ${ms}${b.mealPortionCount?' · '+b.mealPortionCount+' порц.':''}${b.mealCost?' · '+Number(b.mealCost).toLocaleString()+'₽':''}`:'🍽️ Питание не заказано',prog?`🎮 ${prog.name}${b.programCost?' · '+Number(b.programCost).toLocaleString()+'₽':''}`:'🎮 Без программы'],b.notes?[`📝 ${b.notes}`,'']:[]]})});
 gd('progBookings').filter(p=>p.status==='active'||p.status==='pending').forEach(pb=>{const prog=gd('programs').find(x=>x.id===pb.programId);const hosts=(pb.hostIds||[]).map(id=>gd('employees').find(e=>e.id===id)).filter(Boolean).map(h=>h.lastName+' '+h.firstName).join(', ');up.push({type:'progBooking',id:pb.id,date:new Date(pb.date+'T'+(pb.time||'00:00')),badge:pb.status==='pending'?'⏳ Заявка':'🎮 Программа',title:`🎮 ${prog?prog.name:'Программа'}`,rows:[[`👤 ${pb.clientName||'—'}`,`📞 ${pb.clientPhone||'—'}`],[`📅 ${formatDate(pb.date)} ${pb.time||''}`,pb.location?`📍 ${pb.location}`:''],[`👥 ${pb.participantsCount} уч. · ${(pb.totalCost||0).toLocaleString()}₽`,hosts?`🎤 ${hosts}`:'']]})});
