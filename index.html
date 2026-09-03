@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CRM ДЗЛ «Звёздочка»</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath fill='white' d='M32 12l5.5 11.5L50 25l-9 8.5L43.5 46 32 39.5 20.5 46 23 33.5 14 25l12.5-1.5z'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%236366f1'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Cpath fill='white' d='M32 12l5.5 11.5L50 25l-9 8.5L43.5 46 32 39.5 20.5 46 23 33.5 14 25l12.5-1.5z'/%3E%3C/svg%3E">
+
 
 <!-- Внешние сервисы не используются -->
 
@@ -67,7 +70,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .auth-info{background:var(--primary-light);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--primary-dark);margin-bottom:14px;line-height:1.5}
 .auth-switch{text-align:center;margin-top:16px;font-size:12px;color:var(--text-s)}
 .auth-switch a{color:var(--primary);cursor:pointer;font-weight:600;text-decoration:none}
-.auth-user-bar{position:fixed;top:0;right:0;padding:8px 16px;z-index:1001;display:flex;align-items:center;gap:8px}
+.auth-user-bar{position:fixed;top:0;right:0;padding:8px 16px;z-index:90;display:none;align-items:center;gap:8px;pointer-events:none}
 .auth-user-info{background:rgba(255,255,255,.9);backdrop-filter:blur(6px);padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px;border:1px solid var(--border)}
 .logout-btn{background:var(--danger);color:#fff;border:none;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)}
 .logout-btn:hover{background:#dc2626}
@@ -295,6 +298,404 @@ table tr:hover{background:rgba(59,130,246,.02)}
 .file-manager{grid-template-columns:1fr}
 }
 @media(max-width:480px){.stats-row{grid-template-columns:1fr}}
+
+/* ========== СОВРЕМЕННЫЙ UI / АНИМАЦИИ ========== */
+:root{
+--bg:linear-gradient(160deg,#f0f4ff 0%,#f8fafc 40%,#eef2ff 100%);
+--bg-solid:#f0f4ff;
+--sidebar-bg:linear-gradient(180deg,#0f172a 0%,#1e1b4b 55%,#312e81 100%);
+--card:#ffffffee;
+--primary:#4f46e5;--primary-dark:#4338ca;--primary-light:#e0e7ff;
+--success:#059669;--success-light:#d1fae5;
+--warning:#d97706;--warning-light:#fef3c7;
+--danger:#e11d48;--danger-light:#ffe4e6;
+--purple:#7c3aed;--purple-light:#ede9fe;
+--teal:#0d9488;--teal-light:#ccfbf1;
+--orange:#ea580c;--orange-light:#ffedd5;
+--shadow:0 2px 8px rgba(79,70,229,.06);--shadow-md:0 8px 24px rgba(79,70,229,.1);--shadow-lg:0 20px 40px rgba(15,23,42,.12);
+--r:12px;--rs:8px;--rl:16px;
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg-solid);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 10% -10%,rgba(99,102,241,.12),transparent),
+    radial-gradient(ellipse 60% 40% at 100% 0%,rgba(168,85,247,.1),transparent),
+    radial-gradient(ellipse 50% 30% at 50% 100%,rgba(14,165,233,.06),transparent);
+  background-attachment:fixed;
+}
+.sidebar{
+  background:linear-gradient(185deg,#0f172a 0%,#1e1b4b 50%,#312e81 100%);
+  box-shadow:4px 0 24px rgba(15,23,42,.25);
+  border-right:1px solid rgba(255,255,255,.06);
+}
+.sidebar-brand{
+  background:rgba(255,255,255,.03);
+  backdrop-filter:blur(8px);
+}
+.sidebar-brand .logo{
+  background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
+  box-shadow:0 4px 14px rgba(99,102,241,.45);
+  animation:logoGlow 3s ease-in-out infinite;
+}
+@keyframes logoGlow{
+  0%,100%{box-shadow:0 4px 14px rgba(99,102,241,.4)}
+  50%{box-shadow:0 4px 22px rgba(168,85,247,.65)}
+}
+.nav-btn{
+  position:relative;
+  overflow:hidden;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+}
+.nav-btn::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,#818cf8,#c084fc);
+  opacity:0;transition:opacity .25s;border-radius:0 4px 4px 0;
+}
+.nav-btn:hover{background:rgba(255,255,255,.1);color:#fff;transform:translateX(3px)}
+.nav-btn.active{
+  background:linear-gradient(90deg,rgba(99,102,241,.35),rgba(168,85,247,.15));
+  color:#fff;font-weight:600;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.nav-btn.active::before{opacity:1}
+.topbar{
+  background:rgba(255,255,255,.75);
+  backdrop-filter:blur(16px) saturate(1.4);
+  border-bottom:1px solid rgba(226,232,240,.8);
+  box-shadow:0 1px 0 rgba(255,255,255,.8);
+}
+.topbar h1{
+  background:linear-gradient(135deg,#4f46e5,#7c3aed);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.card{
+  background:rgba(255,255,255,.85);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(226,232,240,.9);
+  box-shadow:var(--shadow);
+  transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s ease,border-color .3s;
+}
+.card:hover{box-shadow:var(--shadow-md);border-color:rgba(99,102,241,.25)}
+.stat-card{
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(10px);
+  border:1px solid rgba(226,232,240,.85);
+  position:relative;overflow:hidden;
+  animation:fadeUp .5s ease both;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;
+}
+.stat-card::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.5));
+  pointer-events:none;opacity:.5;
+}
+.stat-card:hover{
+  transform:translateY(-4px) scale(1.02);
+  box-shadow:0 12px 28px rgba(79,70,229,.15);
+}
+.stat-card:nth-child(1){animation-delay:.05s}
+.stat-card:nth-child(2){animation-delay:.1s}
+.stat-card:nth-child(3){animation-delay:.15s}
+.stat-card:nth-child(4){animation-delay:.2s}
+.stat-card:nth-child(5){animation-delay:.25s}
+.stat-card:nth-child(6){animation-delay:.3s}
+.stat-card:nth-child(7){animation-delay:.35s}
+.stat-icon{
+  box-shadow:0 4px 12px rgba(0,0,0,.06);
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1);
+}
+.stat-card:hover .stat-icon{transform:scale(1.12) rotate(-6deg)}
+.stat-info h4{
+  background:linear-gradient(135deg,#1e293b,#4f46e5);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.quick-action{
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(8px);
+  position:relative;overflow:hidden;
+  animation:fadeUp .55s ease both;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+}
+.quick-action:nth-child(1){animation-delay:.08s}
+.quick-action:nth-child(2){animation-delay:.12s}
+.quick-action:nth-child(3){animation-delay:.16s}
+.quick-action:nth-child(4){animation-delay:.2s}
+.quick-action:nth-child(5){animation-delay:.24s}
+.quick-action:nth-child(6){animation-delay:.28s}
+.quick-action:nth-child(7){animation-delay:.32s}
+.quick-action:nth-child(8){animation-delay:.36s}
+.quick-action::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(168,85,247,.08));
+  opacity:0;transition:opacity .3s;
+}
+.quick-action:hover{
+  transform:translateY(-5px) scale(1.03);
+  border-color:#818cf8;
+  box-shadow:0 14px 28px rgba(99,102,241,.18);
+}
+.quick-action:hover::before{opacity:1}
+.quick-action .qa-icon{
+  display:inline-block;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+.quick-action:hover .qa-icon{transform:scale(1.2) rotate(-8deg)}
+.btn{
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  position:relative;overflow:hidden;
+}
+.btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(rgba(255,255,255,.2),transparent);
+  opacity:0;transition:opacity .25s;
+}
+.btn:hover::after{opacity:1}
+.btn:active{transform:scale(.96)}
+.btn-primary{
+  background:linear-gradient(135deg,#6366f1,#4f46e5 50%,#7c3aed);
+  box-shadow:0 4px 14px rgba(79,70,229,.35);
+}
+.btn-primary:hover{
+  background:linear-gradient(135deg,#818cf8,#6366f1 50%,#8b5cf6);
+  box-shadow:0 6px 20px rgba(79,70,229,.45);
+  transform:translateY(-1px);
+}
+.btn-success{
+  background:linear-gradient(135deg,#10b981,#059669);
+  box-shadow:0 4px 12px rgba(5,150,105,.3);
+}
+.btn-success:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(5,150,105,.4)}
+.btn-danger{
+  background:linear-gradient(135deg,#f43f5e,#e11d48);
+  box-shadow:0 4px 12px rgba(225,29,72,.3);
+}
+.btn-warning{
+  background:linear-gradient(135deg,#fbbf24,#d97706);
+  color:#fff;box-shadow:0 4px 12px rgba(217,119,6,.3);
+}
+.page.active{
+  animation:pageIn .35s cubic-bezier(.4,0,.2,1);
+}
+@keyframes pageIn{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:none}
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:none}
+}
+@keyframes fadeIn{
+  from{opacity:0}to{opacity:1}
+}
+@keyframes scaleIn{
+  from{opacity:0;transform:scale(.92)}
+  to{opacity:1;transform:none}
+}
+.modal-overlay.active{
+  animation:fadeIn .25s ease;
+}
+.modal{
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow:0 25px 50px rgba(15,23,42,.2),0 0 0 1px rgba(99,102,241,.08);
+  animation:modalPop .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalPop{
+  from{opacity:0;transform:scale(.9) translateY(20px)}
+  to{opacity:1;transform:none}
+}
+.form-control{
+  transition:border-color .2s,box-shadow .2s,transform .15s;
+  background:rgba(255,255,255,.95);
+}
+.form-control:focus{
+  border-color:#818cf8;
+  box-shadow:0 0 0 4px rgba(99,102,241,.15);
+  transform:translateY(-1px);
+}
+.auth-screen{
+  background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 40%,#4c1d95 100%);
+  background-size:200% 200%;
+  animation:authBg 12s ease infinite;
+}
+@keyframes authBg{
+  0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+.auth-box{
+  animation:scaleIn .5s cubic-bezier(.34,1.56,.64,1);
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 30px 60px rgba(0,0,0,.35);
+}
+.auth-header .auth-logo{
+  background:linear-gradient(135deg,#6366f1,#a855f7,#ec4899);
+  animation:logoGlow 3s ease-in-out infinite;
+}
+.auth-btn{
+  background:linear-gradient(135deg,#6366f1,#7c3aed);
+  box-shadow:0 8px 24px rgba(99,102,241,.4);
+  transition:all .3s;
+}
+.auth-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 28px rgba(99,102,241,.5);
+}
+.loader-screen{
+  background:linear-gradient(135deg,#0f172a,#1e1b4b,#312e81);
+  background-size:200% 200%;
+  animation:authBg 8s ease infinite;
+}
+.loader-spinner{
+  border-top-color:#a855f7;
+  box-shadow:0 0 20px rgba(168,85,247,.3);
+}
+.toast{
+  animation:toastIn .4s cubic-bezier(.34,1.56,.64,1);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,.2);
+}
+@keyframes toastIn{
+  from{opacity:0;transform:translateX(40px) scale(.9)}
+  to{opacity:1;transform:none}
+}
+table tr{transition:background .2s}
+table tr:hover{background:rgba(99,102,241,.06)!important}
+.badge{
+  transition:transform .2s;
+}
+.badge:hover{transform:scale(1.05)}
+.session-card,.program-card,.employee-card,.booking-card,.menu-day-card,.detachment-card{
+  transition:transform .3s cubic-bezier(.4,0,.2,1),box-shadow .3s;
+  animation:fadeUp .4s ease both;
+}
+.session-card:hover,.program-card:hover,.employee-card:hover{
+  transform:translateY(-3px);
+  box-shadow:var(--shadow-md);
+}
+.session-header,.program-header,.booking-card-header,.menu-day-header{
+  position:relative;overflow:hidden;
+}
+.session-header::after,.program-header::after{
+  content:'';position:absolute;top:-50%;right:-20%;width:120px;height:120px;
+  background:rgba(255,255,255,.12);border-radius:50%;
+}
+.file-upload{
+  transition:all .25s;
+}
+.file-upload:hover{
+  border-color:#818cf8;
+  background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(168,85,247,.06));
+  transform:scale(1.01);
+}
+.reminder-banner{
+  animation:fadeUp .45s ease both;
+  box-shadow:0 4px 16px rgba(245,158,11,.12);
+}
+.search-input:focus{
+  box-shadow:0 0 0 4px rgba(99,102,241,.12);
+  border-color:#818cf8;
+}
+.tab{
+  transition:color .2s,border-color .2s,transform .2s;
+}
+.tab:hover{transform:translateY(-1px)}
+.tab.active{
+  color:#4f46e5;
+  border-bottom-color:#4f46e5;
+}
+#recentActivity > div{
+  animation:fadeUp .4s ease both;
+  transition:transform .25s,box-shadow .25s,border-color .25s!important;
+}
+#recentActivity > div:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 24px rgba(79,70,229,.12)!important;
+}
+.sync-indicator{
+  animation:fadeIn .3s ease;
+  border:1px solid rgba(255,255,255,.1);
+}
+.logout-btn{
+  transition:all .25s;
+  box-shadow:0 2px 8px rgba(225,29,72,.25);
+}
+.logout-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(225,29,72,.35);
+}
+/* мягкий скроллбар */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,#a5b4fc,#c4b5fd);
+  border-radius:10px;
+}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#818cf8,#a78bfa)}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+
+
+.btn{border-radius:8px!important}
+.form-control{border-radius:8px!important}
+.modal{border-radius:16px!important}
+table th{position:sticky;top:0;z-index:1}
+.reminder-banner,.booking-reminder-banner{
+  border-radius:12px!important;
+  margin-bottom:12px!important;
+}
+.sync-indicator{z-index:4000!important;bottom:16px!important;left:16px!important;right:auto!important}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);width:min(260px,85vw)!important}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0!important}
+  .menu-toggle{display:inline-flex!important}
+  #topbarUserInfo{display:none!important}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:560px){
+  .stats-row{grid-template-columns:1fr 1fr}
+  .quick-actions{grid-template-columns:repeat(2,1fr)}
+  
+/* Уведомления — только по клику на 🔔 */
+.notif-btn{
+  position:relative;border:none;background:var(--border-l);width:36px;height:36px;border-radius:10px;
+  cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.notif-btn:hover{background:var(--primary-light)}
+.notif-badge{
+  position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;
+  background:var(--danger);color:#fff;font-size:9px;font-weight:700;border-radius:8px;
+  display:none;align-items:center;justify-content:center;line-height:1;
+}
+.notif-badge.show{display:inline-flex}
+.notif-dropdown{
+  display:none;position:absolute;right:0;top:calc(100% + 8px);width:340px;max-width:min(340px,calc(100vw - 24px));
+  background:#fff;border:1.5px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);
+  z-index:1500;overflow:hidden;
+}
+.notif-dropdown.open{display:block}
+.notif-dropdown-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 12px;border-bottom:1px solid var(--border-l);font-size:12px;font-weight:700;
+  background:var(--border-l);
+}
+.notif-dropdown-head button{
+  border:1px solid var(--border);background:#fff;border-radius:8px;padding:4px 8px;
+  font-size:10px;cursor:pointer;font-family:var(--font);color:var(--text-s);
+}
+.notif-list{max-height:360px;overflow-y:auto}
+.notif-item{padding:10px 12px;border-bottom:1px solid var(--border-l);cursor:pointer;transition:background .12s}
+.notif-item:hover{background:var(--primary-light)}
+.notif-item.urgent{background:#fff1f2}
+.notif-item .n-title{font-size:12px;font-weight:700;margin-bottom:2px}
+.notif-item .n-meta{font-size:11px;color:var(--text-s);line-height:1.35}
+.notif-empty{padding:20px;text-align:center;color:var(--text-s);font-size:12px}
+
+}
+
 </style>
 </head>
 <body>
@@ -331,7 +732,6 @@ table tr:hover{background:rgba(59,130,246,.02)}
 <!-- Верхняя панель пользователя -->
 <div class="auth-user-bar" id="userBar" style="display:none">
 <span class="auth-user-info" id="userInfo">👤</span>
-<button class="logout-btn" onclick="logout()">Выйти</button>
 </div>
 
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -350,10 +750,22 @@ table tr:hover{background:rgba(59,130,246,.02)}
 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
 <h1 id="pageTitle">Панель управления</h1>
 </div>
-<div class="topbar-right">
+<div class="topbar-right" style="position:relative">
+<span class="auth-user-info" id="topbarUserInfo" style="display:none">👑 Админ</span>
 <span class="topbar-date" id="currentDate"></span>
+<button type="button" class="notif-btn" id="notifBtn" title="Уведомления о бронях" onclick="toggleNotifDropdown(event)">
+  🔔<span class="notif-badge" id="notifBadge">0</span>
+</button>
+<div class="notif-dropdown" id="notifDropdown">
+  <div class="notif-dropdown-head">
+    <span>🔔 Уведомления</span>
+    <button type="button" onclick="enableBrowserNotifications();event.stopPropagation()">Разрешить пуш</button>
+  </div>
+  <div class="notif-list" id="notifList"><div class="notif-empty">Нет уведомлений</div></div>
+</div>
 </div>
 </header>
+
 <div class="toast-container" id="toastContainer"></div>
 <div class="content" id="mainContent">
 <!-- Страницы будут в Части 2 -->
@@ -1294,6 +1706,7 @@ const YC_SECRET_KEY = 'YCPpDv3nx5U4UcNDn6ppFafSdHoDkWncmQu7yL6A';
 const YC_REGION = 'ru-central1';
 const YC_ENDPOINT = 'storage.yandexcloud.net';
 
+
 // ============= ОБЛАЧНАЯ БАЗА =============
 let DB = {
     vouchers:[], bookings:[], meals:[], sessions:[], employees:[],
@@ -1394,36 +1807,120 @@ async function signRequest(method, body = null) {
 }
 
 async function cloudRequest(method, body = null) {
+    // Без https crypto.subtle часто недоступен (file://) — сразу локальный режим
+    if (!window.crypto || !crypto.subtle) {
+        throw new Error('Нет secure context (откройте через https или localhost)');
+    }
     const signed = await signRequest(method, body);
     const options = {
         method: method,
         headers: signed.headers
     };
     if (signed.body) options.body = signed.body;
-    
-    const res = await fetch(signed.url, options);
-    if (!res.ok) {
-        const text = await res.text();
-        throw new Error('Ошибка ' + res.status + ': ' + text.slice(0, 200));
+
+    const controller = new AbortController();
+    const timeoutMs = 8000;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    options.signal = controller.signal;
+    try {
+        const res = await fetch(signed.url, options);
+        clearTimeout(timer);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error('Ошибка ' + res.status + ': ' + text.slice(0, 200));
+        }
+        if (method === 'GET') return await res.json();
+        return { success: true };
+    } catch (err) {
+        clearTimeout(timer);
+        if (err && err.name === 'AbortError') throw new Error('Таймаут облака (' + timeoutMs/1000 + 'с)');
+        throw err;
     }
-    if (method === 'GET') return await res.json();
-    return { success: true };
+}
+
+async function persistLocalDB(){
+    try{
+        for(const key of Object.keys(DB)){
+            await localPut(key, DB[key]||[]);
+        }
+    }catch(e){console.warn('persistLocalDB indexedDB',e)}
+    try{
+        localStorage.setItem('crm_db_backup', JSON.stringify(DB));
+        localStorage.setItem('crm_db_backup_at', new Date().toISOString());
+    }catch(e){console.warn('persistLocalDB localStorage',e)}
+}
+
+async function loadLocalDB(){
+    let loaded=false;
+    try{
+        for(const key of Object.keys(DB)){
+            const arr=await localGet(key);
+            if(arr&&arr.length){DB[key]=arr;loaded=true}
+            else if(Array.isArray(arr)) DB[key]=arr;
+        }
+    }catch(e){console.warn('localGet',e)}
+    // Подмешиваем резерв localStorage: пустые категории восстанавливаем из backup
+    try{
+        const raw=localStorage.getItem('crm_db_backup');
+        if(raw){
+            const data=JSON.parse(raw);
+            for(const key of Object.keys(DB)){
+                const bak=data[key];
+                if(Array.isArray(bak) && bak.length>0 && (!(DB[key]&&DB[key].length))){
+                    DB[key]=bak;
+                    loaded=true;
+                }
+            }
+            if(!loaded){
+                for(const key of Object.keys(DB)){DB[key]=data[key]||[]}
+                loaded=true;
+            }
+        }
+    }catch(e){}
+    return loaded;
 }
 
 async function loadAllFromCloud() {
-    setSyncStatus('syncing', 'Загрузка из Яндекс Облака...');
+    setSyncStatus('syncing', 'Загрузка данных...');
+    // Сначала всегда поднимаем локальные данные — чтобы пустое облако их не стёрло
+    await loadLocalDB();
+    const localSnapshot = JSON.parse(JSON.stringify(DB));
     try {
         const data = await cloudRequest('GET');
+        let usedCloud = false;
+        let keptLocal = false;
         for (const key of Object.keys(DB)) {
-            DB[key] = data[key] || [];
+            const cloudArr = Array.isArray(data[key]) ? data[key] : [];
+            const localArr = Array.isArray(localSnapshot[key]) ? localSnapshot[key] : [];
+            if (cloudArr.length === 0 && localArr.length > 0) {
+                // пустое облако НЕ затирает локальные данные
+                DB[key] = localArr;
+                keptLocal = true;
+            } else if (cloudArr.length > 0) {
+                // облако имеет данные — берём его (актуальнее при работе с разных ПК)
+                DB[key] = cloudArr;
+                usedCloud = true;
+            } else {
+                DB[key] = localArr.length ? localArr : [];
+            }
         }
-        setSyncStatus('synced', '✅ Данные загружены');
+        await persistLocalDB();
+        if (keptLocal) {
+            // догоняем облако локальными данными, чтобы больше не было «пустого» облака
+            try { await cloudRequest('PUT', DB); } catch (e) { console.warn('cloud catch-up', e); }
+            setSyncStatus('synced', '💾 Локальные данные сохранены');
+        } else if (usedCloud) {
+            setSyncStatus('synced', '✅ Данные из облака');
+        } else {
+            setSyncStatus('synced', '💾 Готово');
+        }
         return true;
     } catch (err) {
-        console.error(err);
-        setSyncStatus('error', '❌ Ошибка загрузки');
-        showToast('Ошибка загрузки: ' + err.message, 'error');
-        return false;
+        console.warn('Облако недоступно, локальный режим:', err.message||err);
+        // localSnapshot already in DB via loadLocalDB
+        setSyncStatus('synced', '💾 Локальный режим');
+        showToast('Облако недоступно — работаем локально на этом компьютере','warning');
+        return true;
     }
 }
 
@@ -1433,9 +1930,13 @@ async function saveToCloud(category, item) {
         const idx = DB[category].findIndex(x => x.id === item.id);
         if (idx >= 0) DB[category][idx] = item;
         else DB[category].push(item);
-
-        await cloudRequest('PUT', DB);
-        setSyncStatus('synced', '✅ Сохранено в облако');
+        await persistLocalDB();
+        try {
+            await cloudRequest('PUT', DB);
+            setSyncStatus('synced', '✅ Сохранено в облако');
+        } catch (cloudErr) {
+            setSyncStatus('synced', '💾 Сохранено локально');
+        }
         return true;
     } catch (err) {
         console.error(err);
@@ -1447,9 +1948,14 @@ async function saveToCloud(category, item) {
 
 async function deleteFromCloud(category, id) {
     try {
-        DB[category] = DB[category].filter(x => x.id !== id);
-        await cloudRequest('PUT', DB);
-        setSyncStatus('synced', '✅ Удалено');
+        DB[category] = (DB[category]||[]).filter(x => x.id !== id);
+        await persistLocalDB();
+        try {
+            await cloudRequest('PUT', DB);
+            setSyncStatus('synced', '✅ Удалено');
+        } catch (cloudErr) {
+            setSyncStatus('synced', '💾 Удалено локально');
+        }
         return true;
     } catch (err) {
         console.error(err);
@@ -1460,10 +1966,10 @@ async function deleteFromCloud(category, id) {
 }
 
 async function refreshFromCloud() {
-    await loadAllFromCloud();
+    const ok=await loadAllFromCloud();
     const curPage = document.querySelector('.page.active')?.id?.replace('page-', '');
     if (curPage) showPage(curPage);
-    showToast('Данные обновлены из облака', 'success');
+    showToast(ok?'Данные обновлены':'Не удалось обновить','success');
 }
 
 async function saveFileToCloud(ownerId, fileType, base64) { return true; }
@@ -1481,7 +1987,8 @@ function stopAutoSync() {
 function gd(category) { return DB[category] || []; }
 async function sd(category, arr) {
     DB[category] = arr;
-    await cloudRequest('PUT', DB);
+    await persistLocalDB();
+    try{await cloudRequest('PUT', DB)}catch(e){console.warn(e)}
 }
 function ic() { counter++; return counter; }
 
@@ -1524,19 +2031,36 @@ async function initApp(){
     }
     document.getElementById('loaderScreen').classList.remove('hidden');
     document.getElementById('loaderText').textContent='Загрузка локальных данных...';
-    const loaded=await loadAllFromCloud();
-    if(!loaded){document.getElementById('loaderScreen').classList.add('hidden');return}
-    await seedInitialData();
-    document.getElementById('loaderScreen').classList.add('hidden');
-    document.getElementById('authScreen').classList.add('hidden');
-    document.getElementById('sidebar').style.display='flex';
-    document.getElementById('mainArea').style.display='block';
-    document.getElementById('userBar').style.display='flex';
-    document.getElementById('userInfo').innerHTML='👑 Администратор · локальный режим';
-    buildSidebar();
-    document.getElementById('currentDate').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'short',year:'numeric',month:'long',day:'numeric'});
-    populateRoleSelects();
-    showPage('dashboard');
+    try{
+        await loadAllFromCloud();
+        await seedInitialData();
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('sidebar').style.display='flex';
+        document.getElementById('mainArea').style.display='block';
+        document.getElementById('userBar').style.display='none';
+        const u=document.getElementById('userInfo');if(u)u.innerHTML='👑 Администратор · локальный режим';
+        const tu=document.getElementById('topbarUserInfo');if(tu){tu.style.display='inline-flex';tu.textContent='👑 Администратор · локальный режим'}
+        buildSidebar();
+        const cd=document.getElementById('currentDate');
+        if(cd)cd.textContent=new Date().toLocaleDateString('ru-RU',{weekday:'short',year:'numeric',month:'long',day:'numeric'});
+        if(typeof populateRoleSelects==='function')populateRoleSelects();
+        showPage('dashboard');
+    }catch(err){
+        console.error('initApp',err);
+        showToast('Ошибка запуска: '+(err.message||err)+' — пробуем локально','warning');
+        try{
+            await loadLocalDB();
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('sidebar').style.display='flex';
+            document.getElementById('mainArea').style.display='block';
+            if(typeof buildSidebar==='function')buildSidebar();
+            showPage('dashboard');
+        }catch(e2){
+            document.getElementById('authScreen').classList.remove('hidden');
+        }
+    }finally{
+        document.getElementById('loaderScreen').classList.add('hidden');
+    }
 }
 
 function buildSidebar(){
@@ -1573,7 +2097,10 @@ function buildSidebar(){
 <button class="nav-btn" data-page="archive" onclick="showPage('archive')"><span class="icon">📁</span>Архив</button>
 <button class="nav-btn" onclick="openExportModal()"><span class="icon">📥</span>Выгрузить Excel</button>
 <button class="nav-btn" onclick="exportFullBackup()"><span class="icon">💾</span>Резервная копия</button>
+<button class="nav-btn" onclick="document.getElementById('importBackupInput').click()"><span class="icon">📤</span>Загрузить копию</button>
+<input type="file" id="importBackupInput" accept=".json,application/json" style="display:none" onchange="importFullBackup(this)">
 <button class="nav-btn" onclick="refreshFromCloud()"><span class="icon">🔄</span>Обновить данные</button>
+<button class="nav-btn" onclick="logout()" style="margin-top:8px;background:rgba(239,68,68,.15);color:#fecaca"><span class="icon">🚪</span>Выйти</button>
 </div>`;
 }
 
@@ -1581,7 +2108,7 @@ function buildSidebar(){
 // ============= UI =============
 function showPage(p){
     document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-    const el=document.getElementById('page-'+p);if(el)el.classList.add('active');
+    const el=document.getElementById('page-'+p);if(el){el.classList.remove('active');void el.offsetWidth;el.classList.add('active')}
     document.querySelectorAll('.nav-btn').forEach(n=>n.classList.remove('active'));
     document.querySelectorAll(`.nav-btn[data-page="${p}"]`).forEach(n=>n.classList.add('active'));
     const titles={dashboard:'Панель управления',documents:'Документы',sessions:'Смены',employees:'Сотрудники',detachments:'Отряды',schedule:'Графики работы',suppliers:'Поставщики',programs:'Игровые программы',programBookings:'Брони программ',newVoucher:'Новая путёвка',vouchers:'Все путёвки',parents:'Родители',newBooking:'Новое бронирование',bookings:'Все бронирования',bookingCalendar:'Календарь',meals:'Заказы',menuModule:'Меню лагеря',archive:'Архив',parentDashboard:'Личный кабинет',parentNewVoucher:'Покупка путёвки',parentNewBooking:'Бронирование',parentNewProgramBooking:'Игровая программа',parentMyVouchers:'Мои путёвки',parentMyBookings:'Мои брони',parentMyPrograms:'Мои программы'};
@@ -1739,7 +2266,7 @@ function refreshBookingMealSelects(){const complexes=gd('mealComplexes')||[];Obj
 function calcBookingMealCost(){const form=document.getElementById('bookingForm');if(!form)return;let total=0;Object.keys(MEAL_DISTRIBUTION).forEach(mk=>{const on=document.getElementById('mealOn_'+mk)?.checked;if(!on)return;const cid=document.getElementById('booking_'+mk+'_complex')?.value;if(cid){const c=(gd('mealComplexes')||[]).find(x=>x.id===cid);if(c)total+=parseFloat(c.price)||0}});const count=parseInt(form.mealPortionCount?.value)||1;const field=document.getElementById('bookingMealCostField');if(field)field.value=Math.ceil(total*count)}
 function refreshBookingProgramSelect(){const sel=document.getElementById('bookingProgramSelect');if(!sel)return;const cv=sel.value;sel.innerHTML='<option value="">— Не выбрано —</option>';gd('programs').sort((a,b)=>a.name.localeCompare(b.name)).forEach(p=>{sel.innerHTML+=`<option value="${p.id}">${p.name} — ${p.basePrice}₽ + ${p.pricePerParticipant}₽/уч.</option>`});if(cv)sel.value=cv}
 function onBookingProgramChange(id){if(!id)return;const p=gd('programs').find(x=>x.id===id);if(!p)return;const form=document.getElementById('bookingForm');const kids=parseInt(form.childrenCount.value)||0;const adults=parseInt(form.adultsCount.value)||0;const total=kids+adults;const cost=(parseFloat(p.basePrice)||0)+(parseFloat(p.pricePerParticipant)||0)*total;form.programCost.value=cost}
-async function saveBooking(e){e.preventDefault();const btn=document.getElementById('bookingSaveBtn');btn.disabled=true;const form=document.getElementById('bookingForm');const fd=new FormData(form);const editId=fd.get('editId');const bookingMeals={};const bookingMenu={};Object.keys(MEAL_DISTRIBUTION).forEach(mk=>{const on=!!document.getElementById('mealOn_'+mk)?.checked;const cid=document.getElementById('booking_'+mk+'_complex')?.value||'';bookingMeals[mk]={enabled:on,complexId:cid};if(on&&cid){const c=(gd('mealComplexes')||[]).find(x=>x.id===cid);bookingMenu[mk]=c?(c.dishIds||[]):[]}else{bookingMenu[mk]=[]}});const bk={id:editId||'bk_'+Date.now(),bookingType:fd.get('bookingType'),objectNumber:fd.get('objectNumber')||'',floorNumber:fd.get('floorNumber')||'',linkedGazebo:fd.get('linkedGazebo')||'',checkInDate:fd.get('checkInDate'),checkInTime:fd.get('checkInTime'),checkOutDate:fd.get('checkOutDate'),checkOutTime:fd.get('checkOutTime'),clientName:fd.get('bookingClientName'),clientPhone:fd.get('bookingClientPhone'),childrenCount:parseInt(fd.get('childrenCount')||0),adultsCount:parseInt(fd.get('adultsCount')||0),organization:fd.get('organization')||'',mealDescription:fd.get('mealDescription')||'',mealCost:parseFloat(fd.get('mealCost')||0),bookingMenu,bookingMeals,mealPortionCount:parseInt(fd.get('mealPortionCount')||1),menuAgeGroup:fd.get('menuAgeGroup')||'7-11',bookingProgramId:fd.get('bookingProgramId')||'',programCost:parseFloat(fd.get('programCost')||0),notes:fd.get('bookingNotes')||'',createdAt:new Date().toISOString(),status:'active'};normalizeBuildingBooking(bk);const r=checkBookingConflict(bk,editId);if(!r.ok){btn.disabled=false;showToast(`Конфликт${r.reason==='беседка'?' (беседка)':''}: ${r.c.clientName}`,'error');return}const ok=await saveToCloud('bookings',bk);btn.disabled=false;if(ok){form.reset();document.querySelector('#bookingForm [name=editId]').value='';document.getElementById('objectNumberGroup').style.display='none';document.getElementById('floorGroup').style.display='none';const lg=document.getElementById('linkedGazeboGroup');if(lg)lg.style.display='none';btn.textContent='💾 Сохранить';showToast(editId?'Обновлено!':'Сохранено!');showPage('bookings')}}
+async function saveBooking(e){e.preventDefault();const btn=document.getElementById('bookingSaveBtn');btn.disabled=true;const form=document.getElementById('bookingForm');const fd=new FormData(form);const editId=fd.get('editId');const bookingMeals={};const bookingMenu={};Object.keys(MEAL_DISTRIBUTION).forEach(mk=>{const on=!!document.getElementById('mealOn_'+mk)?.checked;const cid=document.getElementById('booking_'+mk+'_complex')?.value||'';bookingMeals[mk]={enabled:on,complexId:cid};if(on&&cid){const c=(gd('mealComplexes')||[]).find(x=>x.id===cid);bookingMenu[mk]=c?(c.dishIds||[]):[]}else{bookingMenu[mk]=[]}});const bk={id:editId||'bk_'+Date.now(),bookingType:fd.get('bookingType'),objectNumber:fd.get('objectNumber')||'',floorNumber:fd.get('floorNumber')||'',linkedGazebo:fd.get('linkedGazebo')||'',checkInDate:fd.get('checkInDate'),checkInTime:fd.get('checkInTime'),checkOutDate:fd.get('checkOutDate'),checkOutTime:fd.get('checkOutTime'),clientName:fd.get('bookingClientName'),clientPhone:fd.get('bookingClientPhone'),childrenCount:parseInt(fd.get('childrenCount')||0),adultsCount:parseInt(fd.get('adultsCount')||0),organization:fd.get('organization')||'',mealDescription:fd.get('mealDescription')||'',mealCost:parseFloat(fd.get('mealCost')||0),bookingMenu,bookingMeals,mealPortionCount:parseInt(fd.get('mealPortionCount')||1),menuAgeGroup:fd.get('menuAgeGroup')||'7-11',bookingProgramId:fd.get('bookingProgramId')||'',programCost:parseFloat(fd.get('programCost')||0),notes:fd.get('bookingNotes')||'',createdAt:new Date().toISOString(),status:'active'};normalizeBuildingBooking(bk);const r=checkBookingConflict(bk,editId);if(!r.ok){btn.disabled=false;showToast(`Конфликт${r.reason==='беседка'?' (беседка)':''}: ${r.c.clientName}`,'error');return}const ok=await saveToCloud('bookings',bk);btn.disabled=false;if(ok){form.reset();document.querySelector('#bookingForm [name=editId]').value='';document.getElementById('objectNumberGroup').style.display='none';document.getElementById('floorGroup').style.display='none';const lg=document.getElementById('linkedGazeboGroup');if(lg)lg.style.display='none';btn.textContent='💾 Сохранить';if(!editId&&typeof notifyNewBooking==='function')notifyNewBooking(bk);else showToast(editId?'Обновлено!':'Сохранено!');showPage('bookings')}}
 function getBookingObjectName(b){const t={building:'🏠 Корпус №'+b.objectNumber,floor:'🏠 Корпус №'+b.objectNumber+', '+b.floorNumber+' эт.',gazebo:'⛺ Беседка №'+b.objectNumber,conference:'🎤 Конф-зал',dining:'🍽️ Столовая'};let name=t[b.bookingType]||b.bookingType;if(b.linkedGazebo)name+=' + ⛺ Беседка №'+b.linkedGazebo;return name}
 function renderBookings(){const now=new Date();const bks=gd('bookings');const ac=bks.filter(b=>b.status==='active'||b.status==='pending');const tbody=document.getElementById('bookingsTableBody');const st=(document.getElementById('bookingSearch')?.value||'').toLowerCase();const fil=ac.filter(b=>((b.clientName||'')+(b.clientPhone||'')+(b.organization||'')+getBookingObjectName(b)).toLowerCase().includes(st));if(!fil.length){tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:30px"><div style="font-size:32px">🏠</div>Нет броней</td></tr>`;return}tbody.innerHTML=fil.map(b=>{const mealList=mealSummary(b);const hasMeal=!!mealList;const mealCount=Object.values(b.bookingMeals||{}).filter(x=>x&&x.enabled).length||(b.bookingMenu?Object.values(b.bookingMenu).filter(a=>a&&a.length).length:0);const prog=b.bookingProgramId?gd('programs').find(p=>p.id===b.bookingProgramId):null;const statusBadge=b.status==='pending'?'<br><span class="badge badge-warning">⏳ Заявка</span>':'';return `<tr><td><strong>${getBookingObjectName(b)}</strong>${statusBadge}</td><td>${formatDate(b.checkInDate)}<br><small>${b.checkInTime}</small></td><td>${formatDate(b.checkOutDate)}<br><small>${b.checkOutTime}</small></td><td>${b.clientName}</td><td>${b.clientPhone}</td><td>👶${b.childrenCount}/👤${b.adultsCount}</td><td>${hasMeal||mealList?`<strong>${mealCount||''} ${mealCount?'блюд':''}</strong>${mealList?`<br><small>${mealList}</small>`:''} ×${b.mealPortionCount||1} <button class="btn btn-primary btn-sm btn-icon" onclick="printBookingMealById('${b.id}')">🖨️</button>`:'—'}${b.mealCost?`<br><small>${b.mealCost}₽</small>`:''}</td><td>${prog?`<span class="badge badge-purple">🎮 ${prog.name}</span><br><small>${b.programCost}₽</small>`:'—'}</td><td><button class="btn btn-warning btn-sm btn-icon" onclick="editBooking('${b.id}')">✏️</button> <button class="btn btn-danger btn-sm btn-icon" onclick="deleteBooking('${b.id}')">🗑️</button></td></tr>`}).join('')}
 function editBooking(id){const b=gd('bookings').find(x=>x.id===id);if(!b)return;showPage('newBooking');const form=document.getElementById('bookingForm');form.querySelector('[name=editId]').value=b.id;const uiType=(b.bookingType==='floor')?'building':b.bookingType;form.querySelector('[name=bookingType]').value=uiType;updateBookingOptions(uiType);setTimeout(()=>{if(b.objectNumber)form.querySelector('[name=objectNumber]').value=b.objectNumber;const fn=form.querySelector('[name=floorNumber]');if(fn){if(b.bookingType==='floor'&&b.floorNumber)fn.value=String(b.floorNumber);else fn.value=''}const lg=form.querySelector('[name=linkedGazebo]');if(lg)lg.value=b.linkedGazebo||''},50);['checkInDate','checkInTime','checkOutDate','checkOutTime'].forEach(f=>form.querySelector(`[name=${f}]`).value=b[f]);form.querySelector('[name=bookingClientName]').value=b.clientName;form.querySelector('[name=bookingClientPhone]').value=b.clientPhone;form.querySelector('[name=childrenCount]').value=b.childrenCount;form.querySelector('[name=adultsCount]').value=b.adultsCount;form.querySelector('[name=organization]').value=b.organization||'';form.querySelector('[name=mealDescription]').value=b.mealDescription||'';form.querySelector('[name=mealCost]').value=b.mealCost||0;form.querySelector('[name=mealPortionCount]').value=b.mealPortionCount||1;form.querySelector('[name=menuAgeGroup]').value=b.menuAgeGroup||'7-11';form.querySelector('[name=bookingProgramId]').value=b.bookingProgramId||'';form.querySelector('[name=programCost]').value=b.programCost||0;form.querySelector('[name=bookingNotes]').value=b.notes||'';refreshBookingMealSelects();refreshBookingProgramSelect();setTimeout(()=>{const bm=b.bookingMeals||{};Object.keys(MEAL_DISTRIBUTION).forEach(mk=>{const onEl=document.getElementById('mealOn_'+mk);const sel=document.getElementById('booking_'+mk+'_complex');const conf=bm[mk];const enabled=conf?!!conf.enabled:(b.bookingMenu&&(b.bookingMenu[mk]||[]).length>0);if(onEl)onEl.checked=enabled;if(sel){sel.disabled=!enabled;if(conf&&conf.complexId)sel.value=conf.complexId;else sel.value=''}});calcBookingMealCost();if(b.bookingProgramId)form.querySelector('[name=bookingProgramId]').value=b.bookingProgramId},100);document.getElementById('bookingSaveBtn').textContent='💾 Обновить'}
@@ -1935,8 +2462,152 @@ function renderMenuReportsTab(c){const products=gd('products');const dishes=gd('
 function showArchiveTab(tab,el){document.querySelectorAll('#page-archive .tab').forEach(t=>t.classList.remove('active'));if(el)el.classList.add('active');const c=document.getElementById('archiveTableContainer');if(tab==='vouchers'){const vs=gd('vouchers').filter(v=>new Date(v.sessionEnd)<new Date());if(!vs.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">📁</div><h3>Пусто</h3></div>';return}c.innerHTML=`<div class="table-wrap"><table><thead><tr><th>№</th><th>Ребёнок</th><th>Родитель</th><th>Смена</th><th>Сумма</th></tr></thead><tbody>${vs.map(v=>`<tr><td>${v.contractNumber||'—'}</td><td>${v.childName}</td><td>${v.parentName}</td><td>${formatDate(v.sessionStart)}—${formatDate(v.sessionEnd)}</td><td>${(v.totalAmount||0).toLocaleString()}₽</td></tr>`).join('')}</tbody></table></div>`}else if(tab==='bookings'){const bs=gd('bookings').filter(b=>{const co=new Date(b.checkOutDate);return co<new Date()});if(!bs.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">📁</div><h3>Пусто</h3></div>';return}c.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Объект</th><th>Заезд</th><th>Заказчик</th></tr></thead><tbody>${bs.map(b=>`<tr><td>${getBookingObjectName(b)}</td><td>${formatDate(b.checkInDate)}</td><td>${b.clientName}</td></tr>`).join('')}</tbody></table></div>`}else if(tab==='sessions'){const ss=gd('sessions').filter(s=>getSessionStatus(s).code==='past');if(!ss.length){c.innerHTML='<div class="empty-state"><div class="empty-icon">📁</div><h3>Пусто</h3></div>';return}c.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Название</th><th>Начало</th><th>Конец</th></tr></thead><tbody>${ss.map(s=>`<tr><td>${s.sessionName}</td><td>${formatDate(s.startDate)}</td><td>${formatDate(s.endDate)}</td></tr>`).join('')}</tbody></table></div>`}}
 
 // DASHBOARD
+
+// ===================== УВЕДОМЛЕНИЯ О БРОНЯХ =====================
+function getUpcomingBookingNotifs(){
+  const now=new Date();
+  const day0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const items=[];
+  const bks=(gd('bookings')||[]).filter(b=>b.status==='active'||b.status==='pending');
+  bks.forEach(b=>{
+    const d=new Date(b.checkInDate+'T'+(b.checkInTime||'12:00'));
+    if(isNaN(d))return;
+    const day=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    const diffDays=Math.round((day-day0)/86400000);
+    if(diffDays<0||diffDays>7)return;
+    let label,urgent=false;
+    if(diffDays===0){label='Сегодня';urgent=true}
+    else if(diffDays===1){label='Завтра';urgent=true}
+    else label='Через '+diffDays+' дн.';
+    const meal=typeof mealSummary==='function'?mealSummary(b):'';
+    items.push({
+      id:b.id,type:'booking',urgent,diffDays,date:d,
+      title:`🏠 ${label}: ${typeof getBookingObjectName==='function'?getBookingObjectName(b):'Бронь'}`,
+      meta:`${b.clientName||'—'} · ${b.clientPhone||''} · ${formatDate(b.checkInDate)} ${b.checkInTime||''}${meal?' · 🍽️':''}${b.status==='pending'?' · ⏳ заявка':''}`,
+      booking:b
+    });
+  });
+  const pending=(gd('bookings')||[]).filter(b=>b.status==='pending');
+  pending.forEach(b=>{
+    if(items.some(i=>i.id===b.id))return;
+    items.push({
+      id:'pend_'+b.id,type:'pending',urgent:true,diffDays:0,date:new Date(b.createdAt||Date.now()),
+      title:'⏳ Новая заявка на бронь',
+      meta:`${typeof getBookingObjectName==='function'?getBookingObjectName(b):''} — ${b.clientName||''}`,
+      booking:b
+    });
+  });
+  items.sort((a,b)=>(a.diffDays-b.diffDays)||(a.date-b.date));
+  return items;
+}
+
+function renderNotifBell(){
+  const items=getUpcomingBookingNotifs();
+  const badge=document.getElementById('notifBadge');
+  const list=document.getElementById('notifList');
+  if(!badge||!list)return;
+  const count=items.filter(i=>i.urgent||i.diffDays<=3).length;
+  badge.textContent=String(count);
+  badge.classList.toggle('show', count>0);
+  if(!items.length){
+    list.innerHTML='<div class="notif-empty">Нет ближайших броней</div>';
+    return;
+  }
+  list.innerHTML=items.map(i=>`<div class="notif-item ${i.urgent?'urgent':''}" onclick="openNotifItem('${i.booking.id}')">
+    <div class="n-title">${i.title}</div>
+    <div class="n-meta">${i.meta}</div>
+  </div>`).join('');
+}
+
+function openNotifItem(id){
+  document.getElementById('notifDropdown')?.classList.remove('open');
+  if(typeof viewBookingDetail==='function') viewBookingDetail(id);
+  else {showPage('bookings');}
+}
+
+function toggleNotifDropdown(e){
+  if(e)e.stopPropagation();
+  const dd=document.getElementById('notifDropdown');
+  if(!dd)return;
+  dd.classList.toggle('open');
+  if(dd.classList.contains('open')) renderNotifBell();
+}
+
+document.addEventListener('click',()=>{
+  document.getElementById('notifDropdown')?.classList.remove('open');
+});
+
+function buildBookingReminderBanners(){
+  const items=getUpcomingBookingNotifs().filter(i=>i.type==='booking'&&i.diffDays<=3);
+  if(!items.length)return '';
+  const today=items.filter(i=>i.diffDays===0);
+  const soon=items.filter(i=>i.diffDays>0);
+  let html='';
+  if(today.length){
+    html+=`<div class="booking-reminder-banner today"><h4>🏠 Брони на сегодня (${today.length})</h4>`;
+    html+=today.map(i=>`<div class="reminder-item"><span>${i.title.replace(/^🏠[^:]+:\s*/,'')} — ${i.booking.clientName||''}</span>
+      <a onclick="viewBookingDetail('${i.booking.id}')" style="cursor:pointer;color:#e11d48;font-weight:700">Открыть →</a></div>`).join('');
+    html+='</div>';
+  }
+  if(soon.length){
+    html+=`<div class="booking-reminder-banner"><h4>📅 Брони в ближайшие 3 дня (${soon.length})</h4>`;
+    html+=soon.slice(0,8).map(i=>`<div class="reminder-item"><span>${i.title} — ${i.booking.clientName||''}</span>
+      <a onclick="viewBookingDetail('${i.booking.id}')" style="cursor:pointer;color:#4338ca;font-weight:700">Открыть →</a></div>`).join('');
+    html+='</div>';
+  }
+  return html;
+}
+
+function enableBrowserNotifications(){
+  if(!('Notification' in window)){showToast('Браузер не поддерживает уведомления','warning');return}
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){showToast('Пуш-уведомления включены','success');scheduleBookingBrowserNotifs(true)}
+    else showToast('Разрешение не получено','warning');
+  });
+}
+
+function scheduleBookingBrowserNotifs(force){
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const key='zvezda_notif_sent';
+  let sent={};
+  try{sent=JSON.parse(localStorage.getItem(key)||'{}')}catch(e){}
+  const today=new Date().toISOString().slice(0,10);
+  const items=getUpcomingBookingNotifs().filter(i=>i.type==='booking'&&(i.diffDays===0||i.diffDays===1));
+  items.forEach(i=>{
+    const sid=i.booking.id+'_'+i.diffDays+'_'+today;
+    if(sent[sid]&&!force)return;
+    try{
+      const n=new Notification(i.title,{
+        body:i.meta,
+        tag:sid,
+        icon:undefined
+      });
+      n.onclick=()=>{window.focus();openNotifItem(i.booking.id);n.close()};
+      sent[sid]=Date.now();
+    }catch(e){console.warn(e)}
+  });
+  // cleanup old
+  const week=Date.now()-7*86400000;
+  Object.keys(sent).forEach(k=>{if(sent[k]<week)delete sent[k]});
+  try{localStorage.setItem(key,JSON.stringify(sent))}catch(e){}
+}
+
+function notifyNewBooking(bk){
+  showToast('Бронь: '+(typeof getBookingObjectName==='function'?getBookingObjectName(bk):'')+' — '+(bk.clientName||''),'success');
+  renderNotifBell();
+  if('Notification' in window&&Notification.permission==='granted'){
+    try{
+      new Notification('Новая бронь',{
+        body:(typeof getBookingObjectName==='function'?getBookingObjectName(bk):'Объект')+' · '+(bk.clientName||'')+' · '+formatDate(bk.checkInDate),
+        tag:'new_'+bk.id
+      });
+    }catch(e){}
+  }
+}
+
+
 function renderDashboard(){const vs=gd('vouchers').filter(v=>v.status==='active');const bks=gd('bookings').filter(b=>b.status==='active');const ss=gd('sessions');const es=gd('employees').filter(e=>e.status==='active');const dets=gd('detachments');const now=new Date();const aV=vs.filter(v=>new Date(v.sessionEnd)>=now);const rev=vs.reduce((s,v)=>s+(v.totalAmount||0),0);const unpaid=vs.filter(v=>!getPaymentStatus(v).full);document.getElementById('statVouchers').textContent=aV.length;document.getElementById('statRevenue').textContent=rev.toLocaleString()+'₽';document.getElementById('statBookings').textContent=bks.length;document.getElementById('statSessions').textContent=ss.length;document.getElementById('statEmployees').textContent=es.length;document.getElementById('statDetachments').textContent=dets.length;document.getElementById('statUnpaid').textContent=unpaid.length;const remDiv=document.getElementById('paymentReminders');// Заявки от родителей
-const pendingV=gd('vouchers').filter(v=>v.status==='pending');const pendingB=gd('bookings').filter(b=>b.status==='pending');const pendingP=gd('progBookings').filter(b=>b.status==='pending');const totalPending=pendingV.length+pendingB.length+pendingP.length;let remHtml='';if(totalPending>0){remHtml+=`<div class="reminder-banner" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:var(--primary)"><h4 style="color:var(--primary-dark)">📬 Новые заявки от родителей (${totalPending})</h4>${pendingV.length?`<div class="reminder-item"><span>🎫 Путёвок: ${pendingV.length}</span><a onclick="showPage('vouchers')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}${pendingB.length?`<div class="reminder-item"><span>🏠 Броней: ${pendingB.length}</span><a onclick="showPage('bookings')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}${pendingP.length?`<div class="reminder-item"><span>🎮 Программ: ${pendingP.length}</span><a onclick="showPage('programBookings')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}</div>`}if(unpaid.length>0){const items=unpaid.slice(0,5).map(v=>{const ps=getPaymentStatus(v);const ov=!!ps.overdueDate;return `<div class="reminder-item ${ov?'overdue':''}"><span>🎫 ${v.childName} — ${ps.remain.toLocaleString()}₽</span><span>${ov?'⚠️ '+formatDate(ps.overdueDate):(ps.nextPayDate?'📅 '+formatDate(ps.nextPayDate):'—')}</span></div>`}).join('');remHtml+=`<div class="reminder-banner"><h4>⚠️ Неоплачено (${unpaid.length})</h4>${items}</div>`}remDiv.innerHTML=remHtml;const act=document.getElementById('recentActivity');const up=[];
+const pendingV=gd('vouchers').filter(v=>v.status==='pending');const pendingB=gd('bookings').filter(b=>b.status==='pending');const pendingP=gd('progBookings').filter(b=>b.status==='pending');const totalPending=pendingV.length+pendingB.length+pendingP.length;let remHtml='';if(totalPending>0){remHtml+=`<div class="reminder-banner" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:var(--primary)"><h4 style="color:var(--primary-dark)">📬 Новые заявки от родителей (${totalPending})</h4>${pendingV.length?`<div class="reminder-item"><span>🎫 Путёвок: ${pendingV.length}</span><a onclick="showPage('vouchers')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}${pendingB.length?`<div class="reminder-item"><span>🏠 Броней: ${pendingB.length}</span><a onclick="showPage('bookings')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}${pendingP.length?`<div class="reminder-item"><span>🎮 Программ: ${pendingP.length}</span><a onclick="showPage('programBookings')" style="cursor:pointer;color:var(--primary);font-weight:700">Посмотреть →</a></div>`:''}</div>`}if(unpaid.length>0){const items=unpaid.slice(0,5).map(v=>{const ps=getPaymentStatus(v);const ov=!!ps.overdueDate;return `<div class="reminder-item ${ov?'overdue':''}"><span>🎫 ${v.childName} — ${ps.remain.toLocaleString()}₽</span><span>${ov?'⚠️ '+formatDate(ps.overdueDate):(ps.nextPayDate?'📅 '+formatDate(ps.nextPayDate):'—')}</span></div>`}).join('');remHtml+=`<div class="reminder-banner"><h4>⚠️ Неоплачено (${unpaid.length})</h4>${items}</div>`}remDiv.innerHTML=remHtml;renderNotifBell();scheduleBookingBrowserNotifs(false);const act=document.getElementById('recentActivity');const up=[];
 ss.forEach(s=>{const st=getSessionStatus(s);if(st.code==='upcoming'||st.code==='active'){const kids=gd('vouchers').filter(v=>(v.status==='active'||v.status==='pending')&&v.sessionStart&&new Date(v.sessionStart)<=new Date(s.endDate)&&new Date(v.sessionEnd)>=new Date(s.startDate)).length;up.push({type:'session',id:s.id,date:new Date(s.startDate),badge:st.code==='active'?'🟢 Идёт':'📅 Скоро',title:`🌞 Смена «${s.sessionName}»`,rows:[[`📅 ${formatDate(s.startDate)} — ${formatDate(s.endDate)}`,kids?`👥 ~${kids} детей по путёвкам`:'—'],[s.description||'','']]})}});
 bks.filter(b=>b.status==='active'||b.status==='pending').forEach(b=>{const prog=b.bookingProgramId?gd('programs').find(p=>p.id===b.bookingProgramId):null;const ms=mealSummary(b);up.push({type:'booking',id:b.id,date:new Date(b.checkInDate+'T'+(b.checkInTime||'00:00')),badge:b.status==='pending'?'⏳ Заявка':'✅ Бронь',title:`🏠 ${getBookingObjectName(b)}`,rows:[[`👤 ${b.clientName||'—'}`,`📞 ${b.clientPhone||'—'}`],[b.organization?`🏢 ${b.organization}`:'',`👶 ${b.childrenCount||0} / 👤 ${b.adultsCount||0}`],[`📅 ${formatDate(b.checkInDate)} ${b.checkInTime||''} → ${formatDate(b.checkOutDate)} ${b.checkOutTime||''}`,''],[ms?`🍽️ ${ms}${b.mealPortionCount?' · '+b.mealPortionCount+' порц.':''}${b.mealCost?' · '+Number(b.mealCost).toLocaleString()+'₽':''}`:'🍽️ Питание не заказано',prog?`🎮 ${prog.name}${b.programCost?' · '+Number(b.programCost).toLocaleString()+'₽':''}`:'🎮 Без программы'],b.notes?[`📝 ${b.notes}`,'']:[]]})});
 gd('progBookings').filter(p=>p.status==='active'||p.status==='pending').forEach(pb=>{const prog=gd('programs').find(x=>x.id===pb.programId);const hosts=(pb.hostIds||[]).map(id=>gd('employees').find(e=>e.id===id)).filter(Boolean).map(h=>h.lastName+' '+h.firstName).join(', ');up.push({type:'progBooking',id:pb.id,date:new Date(pb.date+'T'+(pb.time||'00:00')),badge:pb.status==='pending'?'⏳ Заявка':'🎮 Программа',title:`🎮 ${prog?prog.name:'Программа'}`,rows:[[`👤 ${pb.clientName||'—'}`,`📞 ${pb.clientPhone||'—'}`],[`📅 ${formatDate(pb.date)} ${pb.time||''}`,pb.location?`📍 ${pb.location}`:''],[`👥 ${pb.participantsCount} уч. · ${(pb.totalCost||0).toLocaleString()}₽`,hosts?`🎤 ${hosts}`:'']]})});
@@ -2096,30 +2767,65 @@ downloadTextFile('zvezdochka_vse_dannye_'+new Date().toISOString().slice(0,10)+'
 showToast('Все данные выгружены в Excel!');
 }
 function exportFullBackup(){const data={exportedAt:new Date().toISOString(),version:'4.0',DB:JSON.parse(JSON.stringify(DB))};downloadTextFile('zvezdochka_backup_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(data,null,2),'application/json');showToast('Резервная копия JSON сохранена!')}
-
-// ============= INIT =============
-async function checkAuthOnLoad(){
-    document.getElementById('loaderText').textContent='Загрузка локальной CRM...';
-    try{currentUser=JSON.parse(localStorage.getItem('currentUser'))}catch{currentUser=null}
-    if(currentUser&&currentUser.role==='admin'){
-        await initApp();
-    }else{
-        document.getElementById('loaderScreen').classList.add('hidden');
-        document.getElementById('authScreen').classList.remove('hidden');
+async function importFullBackup(input){
+    const file=input&&input.files&&input.files[0];
+    if(!file)return;
+    try{
+        let text=await file.text();
+        if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+        const data=JSON.parse(text);
+        const src=data.DB||data.db||data;
+        if(!src||typeof src!=='object'){showToast('Неверный формат файла','error');input.value='';return}
+        const keys=Object.keys(DB);
+        const counts={};
+        keys.forEach(k=>{if(Array.isArray(src[k]))counts[k]=src[k].length});
+        const summary=Object.entries(counts).filter(([,n])=>n>0).map(([k,n])=>k+': '+n).join(', ')||'пустые списки';
+        if(!confirm('Восстановить данные из файла «'+file.name+'»?\n\n'+summary+'\n\nТекущие данные в CRM будут ЗАМЕНЕНЫ. Продолжить?')){input.value='';return}
+        if(typeof setSyncStatus==='function')setSyncStatus('syncing','Импорт...');
+        for(const k of keys){
+            if(Array.isArray(src[k])) DB[k]=JSON.parse(JSON.stringify(src[k]));
+        }
+        if(typeof persistLocalDB==='function') await persistLocalDB();
+        try{
+            if(typeof cloudRequest==='function') await cloudRequest('PUT', DB);
+            if(typeof setSyncStatus==='function')setSyncStatus('synced','✅ Импорт + облако');
+        }catch(cloudErr){
+            if(typeof setSyncStatus==='function')setSyncStatus('synced','💾 Импорт локально');
+        }
+        showToast('Данные восстановлены из копии!','success');
+        input.value='';
+        if(typeof renderDashboard==='function')renderDashboard();
+        if(typeof showPage==='function')showPage('dashboard');
+        else location.reload();
+    }catch(err){
+        console.error(err);
+        showToast('Ошибка чтения файла: '+(err.message||err),'error');
+        input.value='';
     }
 }
 
-window.addEventListener('load',async()=>{
-    console.log('🚀 CRM ДЗЛ «Звёздочка» v4.0 — локальная версия');
-    try{
-        await openLocalDB();
-        await checkAuthOnLoad();
-    }catch(err){
+
+// ===== АВТОЗАПУСК =====
+window.addEventListener('DOMContentLoaded', function(){
+    // страховка: если через 12 сек всё ещё лоадер — показать вход
+    setTimeout(function(){
+        var loader=document.getElementById('loaderScreen');
+        if(loader && !loader.classList.contains('hidden')){
+            loader.classList.add('hidden');
+            var auth=document.getElementById('authScreen');
+            if(auth) auth.classList.remove('hidden');
+            console.warn('Таймаут загрузки — показан экран входа');
+        }
+    }, 12000);
+    initApp().catch(function(err){
         console.error(err);
-        document.getElementById('loaderScreen').classList.add('hidden');
-        showToast('Не удалось открыть локальное хранилище: '+err.message,'error');
-    }
+        var loader=document.getElementById('loaderScreen');
+        if(loader) loader.classList.add('hidden');
+        var auth=document.getElementById('authScreen');
+        if(auth) auth.classList.remove('hidden');
+    });
 });
+
 </script>
 
 </body>
