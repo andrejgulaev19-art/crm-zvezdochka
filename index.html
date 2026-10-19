@@ -3056,5 +3056,254 @@ window.addEventListener('DOMContentLoaded', function(){
   console.log('✅ Патч v4.1 применён (5 правок)');
 })();
 </script>
+<script>
+/* ============================================================
+   ПАТЧ v4.2 — Прошедшие брони уходят в Архив
+   Требует: патч v4.1
+   ============================================================ */
+(function(){
+  'use strict';
+
+  /* Прошла ли бронь (выезд + время уже в прошлом) */
+  function isBookingPast(b) {
+    if (!b || !b.checkOutDate) return false;
+    const dt = new Date(b.checkOutDate + 'T' + (b.checkOutTime || '23:59'));
+    return dt < new Date();
+  }
+  window.isBookingPast = isBookingPast;
+
+  /* ---------- 1. «Все брони» — скрыть прошедшие ---------- */
+  const _prevRB = window.renderBookings;
+  window.renderBookings = function() {
+    const all = DB.bookings;
+    if (!Array.isArray(all)) return _prevRB();
+    try {
+      DB.bookings = all.filter(b => !isBookingPast(b));
+      _prevRB();
+    } finally {
+      DB.bookings = all;
+    }
+  };
+
+  /* ---------- 2. Архив → вкладка «Брони» — показать прошедшие ---------- */
+  const _origArchive = window.showArchiveTab;
+  window.showArchiveTab = function(tab, el) {
+    _origArchive(tab, el);
+    if (tab !== 'bookings') return;
+    const c = document.getElementById('archiveTableContainer');
+    if (!c) return;
+    const bs = gd('bookings').filter(b => isBookingPast(b));
+    if (!bs.length) {
+      c.innerHTML = '<div class="empty-state"><div class="empty-icon">📁</div><h3>Пусто</h3><p style="font-size:11px">Здесь появятся брони, у которых дата и время выезда уже прошли</p></div>';
+      return;
+    }
+    bs.sort((a, b) => new Date(b.checkOutDate + 'T' + (b.checkOutTime || '00:00')) - new Date(a.checkOutDate + 'T' + (a.checkOutTime || '00:00')));
+    c.innerHTML = '<div style="margin-bottom:8px;padding:8px;background:var(--warning-light);border-radius:6px;font-size:11px"><strong>Прошедших броней:</strong> ' + bs.length + '</div>' +
+      '<div class="table-wrap"><table><thead><tr><th>Объект</th><th>Заезд</th><th>Выезд</th><th>Заказчик</th><th>Тел</th><th>Статус</th></tr></thead><tbody>' +
+      bs.map(b =>
+        '<tr><td><strong>' + getBookingObjectName(b) + '</strong></td>' +
+        '<td>' + formatDate(b.checkInDate) + '<br><small>' + (b.checkInTime || '') + '</small></td>' +
+        '<td>' + formatDate(b.checkOutDate) + '<br><small>' + (b.checkOutTime || '') + '</small></td>' +
+        '<td>' + (b.clientName || '—') + '</td>' +
+        '<td>' + (b.clientPhone || '—') + '</td>' +
+        '<td>' + (b.status || '') + '</td></tr>'
+      ).join('') + '</tbody></table></div>';
+  };
+
+  /* ---------- 3. «Брони питания» — тоже скрыть прошедшие ---------- */
+  const _prevRMB = window.renderMealBookings;
+  if (typeof _prevRMB === 'function') {
+    window.renderMealBookings = function() {
+      const all = DB.bookings;
+      if (!Array.isArray(all)) return _prevRMB();
+      try {
+        DB.bookings = all.filter(b => !isBookingPast(b));
+        _prevRMB();
+      } finally {
+        DB.bookings = all;
+      }
+    };
+  }
+
+  /* ---------- 4. После удаления/сохранения — обновить и архив ---------- */
+  const _prevDel = window.deleteBooking;
+  window.deleteBooking = function(id) {
+    _prevDel(id);
+    setTimeout(() => {
+      const activeTab = document.querySelector('#page-archive .tab.active');
+      if (activeTab && document.getElementById('page-archive')?.classList.contains('active')) {
+        const txt = activeTab.textContent.trim();
+        if (txt === 'Брони') showArchiveTab('bookings', activeTab);
+      }
+    }, 300);
+  };
+
+  console.log('✅ Патч v4.2 применён (прошедшие брони → Архив)');
+})();
+</script>
+<script>
+/* ============================================================
+   ПАТЧ v4.3 — Новые типы брони: «Весь лагерь» и «Питание»
+   Требует: v4.1 (для корректной работы блоков питания и программ)
+   ============================================================ */
+(function(){
+  'use strict';
+
+  /* 1. Добавить опции в select формы и панели проверки */
+  function addTypeOptions() {
+    const bt = document.querySelector('#bookingForm [name=bookingType]');
+    if (bt && !bt.querySelector('option[value="whole_camp"]')) {
+      bt.insertAdjacentHTML('beforeend',
+        '<option value="whole_camp">🏕️ Весь лагерь</option>' +
+        '<option value="meal_only">🍽️ Питание</option>'
+      );
+    }
+    const ct = document.getElementById('checkType');
+    if (ct && !ct.querySelector('option[value="whole_camp"]')) {
+      ct.insertAdjacentHTML('beforeend',
+        '<option value="whole_camp">🏕️ Весь лагерь</option>'
+      );
+    }
+  }
+
+  /* 2. Названия объектов в таблицах */
+  const _origGetName = window.getBookingObjectName;
+  window.getBookingObjectName = function(b) {
+    if (b.bookingType === 'whole_camp') return '🏕️ Весь лагерь';
+    if (b.bookingType === 'meal_only') return '🍽️ Питание';
+    return _origGetName(b);
+  };
+
+  /* 3. При выборе новых типов скрыть № корпуса / этаж / доп. беседку */
+  const _origUBO = window.updateBookingOptions;
+  window.updateBookingOptions = function(t) {
+    _origUBO(t);
+    if (t === 'whole_camp' || t === 'meal_only') {
+      const ng = document.getElementById('objectNumberGroup');
+      const fg = document.getElementById('floorGroup');
+      const lg = document.getElementById('linkedGazeboGroup');
+      if (ng) ng.style.display = 'none';
+      if (fg) fg.style.display = 'none';
+      if (lg) lg.style.display = 'none';
+    }
+  };
+
+  /* 4. Логика конфликтов с учётом новых типов */
+  window.checkBookingConflict = function(bk, editId) {
+    const bks = gd('bookings').filter(b => b.status === 'active' && b.id !== editId);
+    const ns = new Date(bk.checkInDate + 'T' + bk.checkInTime);
+    const ne = new Date(bk.checkOutDate + 'T' + bk.checkOutTime);
+    function overlaps(es, ee) { return ns < ee && ne > es; }
+    function inRange(b) {
+      const es = new Date(b.checkInDate + 'T' + b.checkInTime);
+      const ee = new Date(b.checkOutDate + 'T' + b.checkOutTime);
+      return overlaps(es, ee);
+    }
+
+    /* Питание ни с кем не конфликтует — просто выходим */
+    if (bk.bookingType === 'meal_only') return { ok: true };
+
+    for (const b of bks) {
+      if (!inRange(b)) continue;
+      if (b.bookingType === 'meal_only') continue; // питание не блокирует
+
+      /* Весь лагерь блокирует всё */
+      if (bk.bookingType === 'whole_camp') {
+        return { ok: false, c: b, reason: 'весь лагерь' };
+      }
+      /* Существующая бронь «весь лагерь» блокирует нас */
+      if (b.bookingType === 'whole_camp') {
+        return { ok: false, c: b, reason: 'весь лагерь' };
+      }
+
+      /* Обычная логика для отдельных объектов */
+      let same = false;
+      const bn = parseInt(b.objectNumber), nn = parseInt(bk.objectNumber);
+      if (bk.bookingType === 'building' && (b.bookingType === 'building' || b.bookingType === 'floor') && nn === bn) same = true;
+      if (bk.bookingType === 'floor' && b.bookingType === 'building' && nn === bn) same = true;
+      if (bk.bookingType === 'floor' && b.bookingType === 'floor' && nn === bn && String(bk.floorNumber) === String(b.floorNumber)) same = true;
+      if (bk.bookingType === 'gazebo' && b.bookingType === 'gazebo' && nn === bn) same = true;
+      if (bk.bookingType === 'conference' && b.bookingType === 'conference') same = true;
+      if (bk.bookingType === 'dining' && b.bookingType === 'dining') same = true;
+
+      /* Связка корпус + доп. беседка */
+      if (bk.bookingType === 'gazebo' && (b.bookingType === 'building' || b.bookingType === 'floor')) {
+        if (b.linkedGazebo && parseInt(b.linkedGazebo) === nn) same = true;
+      }
+      if (b.bookingType === 'gazebo' && (bk.bookingType === 'building' || bk.bookingType === 'floor')) {
+        if (bk.linkedGazebo && parseInt(bk.linkedGazebo) === bn) same = true;
+      }
+
+      if (same) return { ok: false, c: b };
+    }
+
+    /* Проверка доп. беседки к корпусу */
+    if (bk.bookingType === 'gazebo') {
+      for (const b of bks) {
+        if (b.bookingType === 'meal_only') continue;
+        if (!inRange(b)) continue;
+        if (b.bookingType === 'whole_camp') return { ok: false, c: b, reason: 'весь лагерь' };
+        if (b.bookingType === 'gazebo' && parseInt(b.objectNumber) === parseInt(bk.objectNumber)) return { ok: false, c: b };
+        if (b.linkedGazebo && parseInt(b.linkedGazebo) === parseInt(bk.objectNumber)) return { ok: false, c: b };
+      }
+    }
+    if (bk.linkedGazebo) {
+      for (const b of bks) {
+        if (b.bookingType === 'meal_only') continue;
+        if (!inRange(b)) continue;
+        if (b.bookingType === 'whole_camp') return { ok: false, c: b, reason: 'весь лагерь' };
+        if (b.bookingType === 'gazebo' && parseInt(b.objectNumber) === parseInt(bk.linkedGazebo)) return { ok: false, c: b, reason: 'беседка' };
+      }
+    }
+
+    return { ok: true };
+  };
+
+  /* 5. Проверка занятости — показать причину */
+  window.checkAvailNow = function() {
+    let t = document.getElementById('checkType').value;
+    const n = document.getElementById('checkNum').value, f = document.getElementById('checkFloor').value;
+    const di = document.getElementById('checkDateIn').value, ti = document.getElementById('checkTimeIn').value;
+    const do_ = document.getElementById('checkDateOut').value, to_ = document.getElementById('checkTimeOut').value;
+    const res = document.getElementById('availResult');
+    if (!t || !di || !ti || !do_ || !to_) { res.innerHTML = ''; return; }
+    if (t === 'building') { if (f === '1' || f === '2') t = 'floor'; }
+    const bk = { bookingType: t, objectNumber: n, floorNumber: (t === 'floor' ? f : ''), checkInDate: di, checkInTime: ti, checkOutDate: do_, checkOutTime: to_ };
+    const r = checkBookingConflict(bk, '');
+    if (r.ok) {
+      res.innerHTML = '<div class="avail-result free">✅ Свободно!</div>';
+    } else {
+      let reason = '';
+      if (r.reason === 'весь лагерь') reason = ' (забронирован весь лагерь)';
+      else if (r.reason === 'беседка') reason = ' (беседка)';
+      res.innerHTML = '<div class="avail-result busy">❌ Занято: ' + (r.c.clientName || '—') + reason + '</div>';
+    }
+  };
+
+  /* 6. При редактировании брони показать выбранный тип */
+  const _origEditBooking = window.editBooking;
+  window.editBooking = function(id) {
+    _origEditBooking(id);
+    setTimeout(() => {
+      const b = gd('bookings').find(x => x.id === id);
+      const form = document.getElementById('bookingForm');
+      if (!b || !form) return;
+      const sel = form.querySelector('[name=bookingType]');
+      if (sel && (b.bookingType === 'whole_camp' || b.bookingType === 'meal_only')) {
+        sel.value = b.bookingType;
+        if (typeof updateBookingOptions === 'function') updateBookingOptions(b.bookingType);
+      }
+    }, 300);
+  };
+
+  /* 7. Запуск инъекции опций */
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(addTypeOptions, 200));
+  else setTimeout(addTypeOptions, 200);
+  setTimeout(addTypeOptions, 1500);
+  setTimeout(addTypeOptions, 3500);
+
+  console.log('✅ Патч v4.3 применён (Весь лагерь + Питание)');
+})();
+</script>
 </body>
 </html>
