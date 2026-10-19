@@ -2671,6 +2671,390 @@ window.addEventListener('DOMContentLoaded', function(){
 });
 
 </script>
+<script>
+/* ============================================================
+   ПАТЧ v4.1 для CRM «Звёздочка» — 5 правок
+   1. Убран буфер между бронями
+   2. Программа с датой/временем + автопопадание в «Брони программ»
+   3. Питание «Дополнительно» + страница «Брони питания»
+   4. Все брони сортируются по дате+времени (возрастание)
+   5. Каскадное удаление брони вместе с программой
+   ============================================================ */
+(function(){
+  'use strict';
 
+  /* ---------- 1. Убрать буфер между бронями ---------- */
+  window.checkBookingConflict = function(bk, editId) {
+    const bks = gd('bookings').filter(b => b.status === 'active' && b.id !== editId);
+    const ns = new Date(bk.checkInDate + 'T' + bk.checkInTime);
+    const ne = new Date(bk.checkOutDate + 'T' + bk.checkOutTime);
+    function overlaps(es, ee) { return ns < ee && ne > es; }
+    function gazeboBusy(gNum, exceptId) {
+      for (const b of bks) {
+        if (b.id === exceptId) continue;
+        const es = new Date(b.checkInDate + 'T' + b.checkInTime);
+        const ee = new Date(b.checkOutDate + 'T' + b.checkOutTime);
+        if (!overlaps(es, ee)) continue;
+        if (b.bookingType === 'gazebo' && parseInt(b.objectNumber) === parseInt(gNum)) return b;
+        if (b.linkedGazebo && parseInt(b.linkedGazebo) === parseInt(gNum)) return b;
+      }
+      return null;
+    }
+    for (const b of bks) {
+      const es = new Date(b.checkInDate + 'T' + b.checkInTime);
+      const ee = new Date(b.checkOutDate + 'T' + b.checkOutTime);
+      let same = false;
+      const bn = parseInt(b.objectNumber), nn = parseInt(bk.objectNumber);
+      if (bk.bookingType === 'building' && (b.bookingType === 'building' || b.bookingType === 'floor') && nn === bn) same = true;
+      if (bk.bookingType === 'floor' && b.bookingType === 'building' && nn === bn) same = true;
+      if (bk.bookingType === 'floor' && b.bookingType === 'floor' && nn === bn && String(bk.floorNumber) === String(b.floorNumber)) same = true;
+      if (bk.bookingType === 'gazebo' && b.bookingType === 'gazebo' && nn === bn) same = true;
+      if (bk.bookingType === 'conference' && b.bookingType === 'conference') same = true;
+      if (bk.bookingType === 'dining' && b.bookingType === 'dining') same = true;
+      if (same && overlaps(es, ee)) return { ok: false, c: b };
+    }
+    if (bk.bookingType === 'gazebo') {
+      const busy = gazeboBusy(bk.objectNumber, editId);
+      if (busy) return { ok: false, c: busy };
+    }
+    if (bk.linkedGazebo) {
+      const busy = gazeboBusy(bk.linkedGazebo, editId);
+      if (busy) return { ok: false, c: busy, reason: 'беседка' };
+    }
+    return { ok: true };
+  };
+
+  /* ---------- 2. Питание «Дополнительно» ---------- */
+  window.onBookingMealToggle = function(mk) {
+    const on = document.getElementById('mealOn_' + mk)?.checked;
+    if (mk === 'extra') {
+      const txt = document.getElementById('mealExtraText');
+      if (txt) { txt.disabled = !on; if (!on) txt.value = ''; }
+      if (typeof calcBookingMealCost === 'function') calcBookingMealCost();
+      return;
+    }
+    const sel = document.getElementById('booking_' + mk + '_complex');
+    if (sel) { sel.disabled = !on; if (!on) sel.value = ''; }
+    if (typeof calcBookingMealCost === 'function') calcBookingMealCost();
+  };
+
+  window.mealSummary = function(b) {
+    const parts = [];
+    const bm = b.bookingMeals || {};
+    Object.entries(MEAL_DISTRIBUTION).forEach(([mk, mi]) => {
+      const conf = bm[mk];
+      const enabled = conf ? !!conf.enabled : (b.bookingMenu && (b.bookingMenu[mk] || []).length > 0);
+      if (!enabled) return;
+      let t = mi.icon + ' ' + mi.name;
+      if (conf && conf.complexId) {
+        const c = (gd('mealComplexes') || []).find(x => x.id === conf.complexId);
+        if (c) t += ' (' + c.name + ')';
+      }
+      parts.push(t);
+    });
+    if (b.mealExtraText) parts.push('➕ ' + b.mealExtraText);
+    if (parts.length) return parts.join('; ') + (b.mealDescription ? ' · ' + b.mealDescription : '');
+    return b.mealDescription || '';
+  };
+
+  /* ---------- 3. Синхронизация программы из брони ---------- */
+  window.syncProgramBookingFromBooking = async function(bk, editId) {
+    try {
+      const existing = gd('progBookings').find(pb => pb.linkedBookingId === bk.id);
+      if (!bk.bookingProgramId || !bk.programStartDate || !bk.programStartTime) {
+        if (existing) await deleteFromCloud('progBookings', existing.id);
+        return;
+      }
+      const participants = (bk.childrenCount || 0) + (bk.adultsCount || 0);
+      const data = {
+        id: existing ? existing.id : ('pb_' + Date.now()),
+        programId: bk.bookingProgramId,
+        date: bk.programStartDate,
+        time: bk.programStartTime,
+        endDate: bk.programEndDate || bk.programStartDate,
+        endTime: bk.programEndTime || '',
+        location: getBookingObjectName(bk),
+        participantsCount: participants || 1,
+        clientName: bk.clientName,
+        clientPhone: bk.clientPhone,
+        hostIds: existing ? (existing.hostIds || []) : [],
+        totalCost: bk.programCost || 0,
+        paidStatus: existing ? (existing.paidStatus || 'unpaid') : 'unpaid',
+        notes: 'Из брони: ' + getBookingObjectName(bk),
+        linkedBookingId: bk.id,
+        createdAt: existing ? existing.createdAt : new Date().toISOString(),
+        status: 'active'
+      };
+      await saveToCloud('progBookings', data);
+    } catch (err) { console.error('syncProgramBooking:', err); }
+  };
+
+  /* ---------- 4. Сохранение брони ---------- */
+  window.saveBooking = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('bookingSaveBtn');
+    btn.disabled = true;
+    const form = document.getElementById('bookingForm');
+    const fd = new FormData(form);
+    const editId = fd.get('editId');
+    const bookingMeals = {}, bookingMenu = {};
+    Object.keys(MEAL_DISTRIBUTION).forEach(mk => {
+      const on = !!document.getElementById('mealOn_' + mk)?.checked;
+      const cid = document.getElementById('booking_' + mk + '_complex')?.value || '';
+      bookingMeals[mk] = { enabled: on, complexId: cid };
+      if (on && cid) {
+        const c = (gd('mealComplexes') || []).find(x => x.id === cid);
+        bookingMenu[mk] = c ? (c.dishIds || []) : [];
+      } else bookingMenu[mk] = [];
+    });
+    const extraOn = !!document.getElementById('mealOn_extra')?.checked;
+    const bk = {
+      id: editId || 'bk_' + Date.now(),
+      bookingType: fd.get('bookingType'),
+      objectNumber: fd.get('objectNumber') || '',
+      floorNumber: fd.get('floorNumber') || '',
+      linkedGazebo: fd.get('linkedGazebo') || '',
+      checkInDate: fd.get('checkInDate'), checkInTime: fd.get('checkInTime'),
+      checkOutDate: fd.get('checkOutDate'), checkOutTime: fd.get('checkOutTime'),
+      clientName: fd.get('bookingClientName'), clientPhone: fd.get('bookingClientPhone'),
+      childrenCount: parseInt(fd.get('childrenCount') || 0),
+      adultsCount: parseInt(fd.get('adultsCount') || 0),
+      organization: fd.get('organization') || '',
+      mealDescription: fd.get('mealDescription') || '',
+      mealCost: parseFloat(fd.get('mealCost') || 0),
+      bookingMenu, bookingMeals,
+      mealPortionCount: parseInt(fd.get('mealPortionCount') || 1),
+      menuAgeGroup: fd.get('menuAgeGroup') || '7-11',
+      mealExtraText: extraOn ? (fd.get('mealExtraText') || '') : '',
+      bookingProgramId: fd.get('bookingProgramId') || '',
+      programCost: parseFloat(fd.get('programCost') || 0),
+      programStartDate: fd.get('programStartDate') || '',
+      programStartTime: fd.get('programStartTime') || '',
+      programEndDate: fd.get('programEndDate') || '',
+      programEndTime: fd.get('programEndTime') || '',
+      notes: fd.get('bookingNotes') || '',
+      createdAt: new Date().toISOString(), status: 'active'
+    };
+    if (editId) {
+      const ex = gd('bookings').find(b => b.id === editId);
+      if (ex) bk.createdAt = ex.createdAt;
+    }
+    if (typeof normalizeBuildingBooking === 'function') normalizeBuildingBooking(bk);
+    const r = checkBookingConflict(bk, editId);
+    if (!r.ok) {
+      btn.disabled = false;
+      showToast('Конфликт' + (r.reason === 'беседка' ? ' (беседка)' : '') + ': ' + r.c.clientName, 'error');
+      return;
+    }
+    const ok = await saveToCloud('bookings', bk);
+    btn.disabled = false;
+    if (ok) {
+      await syncProgramBookingFromBooking(bk, editId);
+      form.reset();
+      document.querySelector('#bookingForm [name=editId]').value = '';
+      document.getElementById('objectNumberGroup').style.display = 'none';
+      document.getElementById('floorGroup').style.display = 'none';
+      const lg = document.getElementById('linkedGazeboGroup');
+      if (lg) lg.style.display = 'none';
+      btn.textContent = '💾 Сохранить';
+      if (!editId && typeof notifyNewBooking === 'function') notifyNewBooking(bk);
+      else showToast(editId ? 'Обновлено!' : 'Сохранено!');
+      showPage('bookings');
+    }
+  };
+
+  /* ---------- 5. Сортировка «Все брони» ---------- */
+  function parseRowDT(text) {
+    const dm = String(text).match(/(\d{2})\.(\d{2})\.(\d{4})/);
+    if (!dm) return Infinity;
+    const d = new Date(+dm[3], +dm[2] - 1, +dm[1]);
+    const tm = String(text).match(/(\d{2}):(\d{2})/);
+    if (tm) d.setHours(+tm[1], +tm[2]);
+    return d.getTime();
+  }
+  function sortTableBySecondColumn(tbodyId) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (!rows.length) return;
+    if (rows[0].children.length === 1 && (rows[0].children[0].colSpan || 0) > 1) return;
+    rows.sort((a, b) => parseRowDT(a.children[1]?.textContent || '') - parseRowDT(b.children[1]?.textContent || ''));
+    rows.forEach(r => tbody.appendChild(r));
+  }
+  const origRenderBookings = window.renderBookings;
+  window.renderBookings = function() { origRenderBookings(); sortTableBySecondColumn('bookingsTableBody'); };
+
+  const origRenderProgramBookings = window.renderProgramBookings;
+  window.renderProgramBookings = function() { origRenderProgramBookings(); sortTableBySecondColumn('progBookingsTableBody'); };
+
+  /* ---------- 6. Страница «Брони питания» ---------- */
+  window.renderMealBookings = function() {
+    const tbody = document.getElementById('mealBookingsTableBody');
+    if (!tbody) return;
+    const st = (document.getElementById('mealBookSearch')?.value || '').toLowerCase();
+    const list = gd('bookings').filter(b => b.status === 'active' || b.status === 'pending').filter(b => {
+      const bm = b.bookingMeals || {};
+      const hasAny = Object.values(bm).some(x => x && x.enabled) || !!b.mealExtraText || !!b.mealDescription;
+      if (!hasAny) return false;
+      const s = ((b.clientName || '') + (b.clientPhone || '') + (b.organization || '') + getBookingObjectName(b)).toLowerCase();
+      return s.includes(st);
+    });
+    list.sort((a, b) => new Date(a.checkInDate + 'T' + (a.checkInTime || '00:00')) - new Date(b.checkInDate + 'T' + (b.checkInTime || '00:00')));
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px"><div style="font-size:32px">🍽️</div>Нет броней питания</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(b => {
+      const bm = b.bookingMeals || {};
+      const meals = [];
+      Object.entries(MEAL_DISTRIBUTION).forEach(([mk, mi]) => {
+        const conf = bm[mk];
+        const enabled = conf ? !!conf.enabled : (b.bookingMenu && (b.bookingMenu[mk] || []).length > 0);
+        if (enabled) {
+          let name = mi.icon + ' ' + mi.name;
+          if (conf && conf.complexId) {
+            const c = (gd('mealComplexes') || []).find(x => x.id === conf.complexId);
+            if (c) name += ' (' + c.name + ')';
+          }
+          meals.push(name);
+        }
+      });
+      const extra = b.mealExtraText ? '➕ ' + b.mealExtraText : '—';
+      const statusBadge = b.status === 'pending' ? '<br><span class="badge badge-warning">⏳ Заявка</span>' : '';
+      return '<tr><td>' + formatDate(b.checkInDate) + '<br><small>' + (b.checkInTime || '') + '</small></td><td><strong>' + getBookingObjectName(b) + '</strong>' + statusBadge + '</td><td>' + b.clientName + '<br><small>' + (b.clientPhone || '') + '</small></td><td>' + (meals.join('<br>') || '—') + '</td><td>' + extra + '</td><td>' + (b.mealPortionCount || 1) + '</td><td><strong>' + (b.mealCost || 0).toLocaleString() + '₽</strong></td></tr>';
+    }).join('');
+  };
+  window.exportMealBookingsExcel = function() {
+    const rows = [['Дата','Время','Объект','Заказчик','Телефон','Приёмы','Дополнительно','Порций','Сумма','Статус']];
+    gd('bookings').filter(b => {
+      const bm = b.bookingMeals || {};
+      return Object.values(bm).some(x => x && x.enabled) || b.mealExtraText || b.mealDescription;
+    }).forEach(b => {
+      const bm = b.bookingMeals || {};
+      const meals = [];
+      Object.entries(MEAL_DISTRIBUTION).forEach(([mk, mi]) => {
+        const conf = bm[mk];
+        const enabled = conf ? !!conf.enabled : (b.bookingMenu && (b.bookingMenu[mk] || []).length > 0);
+        if (enabled) {
+          let name = mi.name;
+          if (conf && conf.complexId) {
+            const c = (gd('mealComplexes') || []).find(x => x.id === conf.complexId);
+            if (c) name += ' (' + c.name + ')';
+          }
+          meals.push(name);
+        }
+      });
+      rows.push([formatDate(b.checkInDate), b.checkInTime || '', getBookingObjectName(b), b.clientName, b.clientPhone || '', meals.join('; '), b.mealExtraText || '', b.mealPortionCount || 1, b.mealCost || 0, b.status || '']);
+    });
+    const csv = rows.map(r => r.map(csvEscape).join(';')).join('\n');
+    downloadTextFile('zvezdochka_broni_pitaniya_' + new Date().toISOString().slice(0, 10) + '.csv', csv);
+    showToast('Выгружено в Excel (CSV)!');
+  };
+
+  /* ---------- 7. Редактирование брони — подставить новые поля ---------- */
+  const origEditBooking = window.editBooking;
+  window.editBooking = function(id) {
+    origEditBooking(id);
+    const b = gd('bookings').find(x => x.id === id);
+    if (!b) return;
+    setTimeout(() => {
+      const form = document.getElementById('bookingForm');
+      if (!form) return;
+      const setVal = (name, val) => { const el = form.querySelector('[name=' + name + ']'); if (el) el.value = val; };
+      setVal('programStartDate', b.programStartDate || '');
+      setVal('programStartTime', b.programStartTime || '14:00');
+      setVal('programEndDate', b.programEndDate || '');
+      setVal('programEndTime', b.programEndTime || '15:00');
+      const hasExtra = !!b.mealExtraText;
+      const cb = document.getElementById('mealOn_extra');
+      if (cb) cb.checked = hasExtra;
+      const txt = document.getElementById('mealExtraText');
+      if (txt) { txt.value = b.mealExtraText || ''; txt.disabled = !hasExtra; }
+    }, 250);
+  };
+
+  /* ---------- 8. Каскадное удаление ---------- */
+  window.deleteBooking = function(id) {
+    showConfirm('Удалить бронь?', 'Безвозвратно.', async () => {
+      const linked = gd('progBookings').find(pb => pb.linkedBookingId === id);
+      if (linked) await deleteFromCloud('progBookings', linked.id);
+      await deleteFromCloud('bookings', id);
+      renderBookings();
+      showToast('Удалено', 'info');
+    });
+  };
+
+  /* ---------- 9. showPage + buildSidebar ---------- */
+  const origShowPage = window.showPage;
+  window.showPage = function(p) {
+    origShowPage(p);
+    if (p === 'mealBookings') {
+      const t = document.getElementById('pageTitle');
+      if (t) t.textContent = 'Брони питания';
+      renderMealBookings();
+    }
+  };
+  const origBuildSidebar = window.buildSidebar;
+  window.buildSidebar = function() {
+    origBuildSidebar();
+    setTimeout(() => {
+      const nav = document.getElementById('sidebarNav');
+      if (nav && !nav.querySelector('[data-page="mealBookings"]')) {
+        const progBtn = nav.querySelector('[data-page="programBookings"]');
+        if (progBtn) progBtn.insertAdjacentHTML('afterend', '<button class="nav-btn" data-page="mealBookings" onclick="showPage(\'mealBookings\')"><span class="icon">🍽️</span>Брони питания</button>');
+      }
+    }, 60);
+  };
+
+  /* ---------- 10. DOM-инъекции ---------- */
+  function injectDOM() {
+    const bookingForm = document.getElementById('bookingForm');
+    if (bookingForm && !bookingForm.querySelector('[name=programStartDate]')) {
+      const progSel = bookingForm.querySelector('[name=bookingProgramId]');
+      if (progSel) {
+        const grid = progSel.closest('.form-grid');
+        if (grid) {
+          grid.insertAdjacentHTML('beforeend',
+            '<div class="form-group"><label>Программа с (дата)</label><input type="date" class="form-control" name="programStartDate"></div>' +
+            '<div class="form-group"><label>Программа с (время)</label><input type="time" class="form-control" name="programStartTime" value="14:00"></div>' +
+            '<div class="form-group"><label>Программа по (дата)</label><input type="date" class="form-control" name="programEndDate"></div>' +
+            '<div class="form-group"><label>Программа по (время)</label><input type="time" class="form-control" name="programEndTime" value="15:00"></div>'
+          );
+        }
+      }
+    }
+    const mealsContainer = document.getElementById('bookingMealsContainer');
+    if (mealsContainer && !document.getElementById('mealOn_extra')) {
+      mealsContainer.insertAdjacentHTML('beforeend',
+        '<div class="booking-meal-row" style="grid-template-columns:28px 100px 1fr auto;gap:8px">' +
+        '<label style="display:flex;align-items:center;justify-content:center"><input type="checkbox" name="mealOn_extra" id="mealOn_extra" onchange="onBookingMealToggle(\'extra\')"></label>' +
+        '<strong style="font-size:10px">➕ Дополнительно</strong>' +
+        '<input type="text" class="form-control" name="mealExtraText" id="mealExtraText" placeholder="Что именно (банкет, кофе-брейк и т.д.)" disabled>' +
+        '<span></span></div>'
+      );
+    }
+    if (!document.getElementById('page-mealBookings')) {
+      const parent = document.getElementById('mainContent');
+      if (parent) {
+        parent.insertAdjacentHTML('beforeend',
+          '<div class="page" id="page-mealBookings">' +
+          '<div class="search-bar">' +
+          '<input type="text" class="search-input" id="mealBookSearch" placeholder="Поиск по заказчику, объекту..." oninput="renderMealBookings()">' +
+          '<button class="btn btn-ghost btn-sm" onclick="exportMealBookingsExcel()">📥 Excel</button>' +
+          '</div>' +
+          '<div class="card"><div class="table-wrap"><table><thead><tr><th>Дата</th><th>Объект</th><th>Заказчик</th><th>Приёмы</th><th>Дополнительно</th><th>Порций</th><th>Сумма</th></tr></thead><tbody id="mealBookingsTableBody"></tbody></table></div></div>' +
+          '</div>'
+        );
+      }
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(injectDOM, 100));
+  else setTimeout(injectDOM, 100);
+  setTimeout(injectDOM, 1000);
+  setTimeout(injectDOM, 3000);
+
+  console.log('✅ Патч v4.1 применён (5 правок)');
+})();
+</script>
 </body>
 </html>
