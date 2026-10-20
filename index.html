@@ -3398,5 +3398,93 @@ window.addEventListener('DOMContentLoaded', function(){
   console.log('✅ Патч v4.4 применён (Время программы на панели + автозаполнение)');
 })();
 </script>
+  <script>
+/* ============================================================
+   ПАТЧ v4.5 — Расширенная таблица «Все брони»
+   Добавлены: Организация и Время проведения программы
+   ============================================================ */
+(function(){
+  'use strict';
+
+  window.renderBookings = function() {
+    // 1. Получаем данные
+    let bks = gd('bookings').filter(b => b.status === 'active' || b.status === 'pending');
+    
+    // 2. Скрываем прошедшие (если установлен патч v4.2)
+    if (typeof window.isBookingPast === 'function') {
+      bks = bks.filter(b => !window.isBookingPast(b));
+    }
+
+    // 3. Фильтр по поиску
+    const st = (document.getElementById('bookingSearch')?.value || '').toLowerCase();
+    if (st) {
+      bks = bks.filter(b => ((b.clientName || '') + (b.clientPhone || '') + (b.organization || '') + getBookingObjectName(b)).toLowerCase().includes(st));
+    }
+
+    // 4. Сортировка по дате заезда (от меньшей к большей)
+    bks.sort((a, b) => new Date(a.checkInDate + 'T' + (a.checkInTime || '00:00')) - new Date(b.checkInDate + 'T' + (b.checkInTime || '00:00')));
+
+    // 5. Обновляем шапку таблицы
+    const table = document.querySelector('#page-bookings table');
+    if (table) {
+      const thead = table.querySelector('thead tr');
+      if (thead) {
+        thead.innerHTML = `
+          <th>Объект</th>
+          <th>Заезд</th>
+          <th>Выезд</th>
+          <th>Заказчик</th>
+          <th>Организация</th>
+          <th>Тел</th>
+          <th>Дети/Взр</th>
+          <th>Питание</th>
+          <th>Программа</th>
+          <th>Время программы</th>
+          <th></th>
+        `;
+      }
+    }
+
+    // 6. Рендерим строки
+    const tbody = document.getElementById('bookingsTableBody');
+    if (!tbody) return;
+    
+    if (!bks.length) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px"><div style="font-size:32px">🏠</div>Нет броней</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = bks.map(b => {
+      const mealList = typeof window.mealSummary === 'function' ? window.mealSummary(b) : '';
+      const hasMeal = !!mealList;
+      const mealCount = Object.values(b.bookingMeals || {}).filter(x => x && x.enabled).length || (b.bookingMenu ? Object.values(b.bookingMenu).filter(a => a && a.length).length : 0);
+      
+      const prog = b.bookingProgramId ? gd('programs').find(p => p.id === b.bookingProgramId) : null;
+      const progTime = (b.programStartTime || b.programEndTime) ? `${b.programStartTime || '?'} - ${b.programEndTime || '?'}` : '—';
+      
+      const statusBadge = b.status === 'pending' ? '<br><span class="badge badge-warning">⏳ Заявка</span>' : '';
+      
+      return `<tr>
+        <td><strong>${getBookingObjectName(b)}</strong>${statusBadge}</td>
+        <td>${formatDate(b.checkInDate)}<br><small>${b.checkInTime || ''}</small></td>
+        <td>${formatDate(b.checkOutDate)}<br><small>${b.checkOutTime || ''}</small></td>
+        <td>${b.clientName || '—'}</td>
+        <td>${b.organization || '—'}</td>
+        <td>${b.clientPhone || '—'}</td>
+        <td>👶${b.childrenCount || 0}/👤${b.adultsCount || 0}</td>
+        <td>${hasMeal || mealList ? `<strong>${mealCount || ''} ${mealCount ? 'блюд' : ''}</strong>${mealList ? `<br><small>${mealList}</small>` : ''} ×${b.mealPortionCount || 1} <button class="btn btn-primary btn-sm btn-icon" onclick="printBookingMealById('${b.id}')">🖨️</button>` : '—'}${b.mealCost ? `<br><small>${b.mealCost}₽</small>` : ''}</td>
+        <td>${prog ? `<span class="badge badge-purple">🎮 ${prog.name}</span><br><small>${b.programCost || 0}₽</small>` : '—'}</td>
+        <td>${prog ? progTime : '—'}</td>
+        <td>
+          <button class="btn btn-warning btn-sm btn-icon" onclick="editBooking('${b.id}')">✏️</button> 
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteBooking('${b.id}')">🗑️</button>
+        </td>
+      </tr>`;
+    }).join('');
+  };
+
+  console.log('✅ Патч v4.5 применён (Расширенная таблица броней)');
+})();
+</script>
 </body>
 </html>
